@@ -1,0 +1,19 @@
+[project]
+name = "msdl-jci"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Jordan Ferdinand", email = "253198146+jordan-ferdinand_IMSI@users.noreply.github.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "feedparser>=6.0.14",
+]
+
+[project.scripts]
+msdl-jci = "msdl_jci:main"
+
+[build-system]
+requires = ["uv_build>=0.12.1,<0.13.0"]
+build-backend = "uv_build"
