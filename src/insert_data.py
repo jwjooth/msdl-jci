@@ -4,7 +4,9 @@ from sqlalchemy import create_engine
 # read csv file
 file_path = (
     # r"C:\Users\jorda\Documents\'kuliah hohohoho'\'semester 7'\project\MSDL-JCI\src\jci_historical.csv"
-    r"C:\Users\jorda\Documents\kuliah hohohoho\semester 7\project\MSDL-JCI\data\raw\bi_rate.csv"
+    # r"C:\Users\jorda\Documents\kuliah hohohoho\semester 7\project\MSDL-JCI\data\raw\bi_rate.csv"
+    # r"C:\Users\jorda\Documents\kuliah hohohoho\semester 7\project\MSDL-JCI\data\raw\kurs_usdidr.csv"
+    r"C:\Users\jorda\Documents\kuliah hohohoho\semester 7\project\MSDL-JCI\data\raw\inflation_data.csv"
 )
 df = pd.read_csv(file_path)
 
@@ -15,7 +17,7 @@ engine = create_engine(
 
 # put it into database table
 df.to_sql(
-    "interest_rate",
+    "inflation_data",
     con=engine,
     schema="macro_data",
     if_exists="append",
