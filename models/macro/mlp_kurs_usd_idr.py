@@ -6,7 +6,7 @@ from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import MinMaxScaler
 
 # read data csv
-df = pd.read_csv("../data/raw/kurs_usdidr.csv")
+df = pd.read_csv("../../data/raw/kurs_usdidr.csv")
 
 # take the close price column
 data = df["Close"].values.reshape(-1, 1)

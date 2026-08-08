@@ -6,13 +6,13 @@ from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import MinMaxScaler
 
 # read data csv
-df = pd.read_csv("../data/raw/bi_rate.csv")
+df = pd.read_csv("../../data/raw/inflation_data.csv")
 
 # data cleaning
-df["BI-7Day-RR"] = df["BI-7Day-RR"].astype(str).str.replace("%", "").str.strip().astype(float)
+df["Data Inflasi"] = df["Data Inflasi"].astype(str).str.replace("%", "").str.strip().astype(float)
 
 # take the close price column
-data = df["BI-7Day-RR"].values.reshape(-1, 1)
+data = df["Data Inflasi"].values.reshape(-1, 1)
 
 # normalized data scale 0 to 1, easy to process in neural network purposes
 scaler = MinMaxScaler(feature_range=(0, 1))
@@ -75,7 +75,7 @@ mean absolute percentage error: {mape:.2f}
 """)
 
 # show 5 examples prediction data vs the real value
-print("\n-- prediction result usd/idr examples --")
+print("\n-- prediction result inflation data examples --")
 
-for i in range(18):
+for i in range(19):
     print(f"prediction: {prediction_scaled[i][0]:.2f}% | real: {y_test_actual[i][0]:.2f}%")
