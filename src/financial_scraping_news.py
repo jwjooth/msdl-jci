@@ -2,6 +2,7 @@ from datetime import datetime
 import logging
 from typing import Dict, List, Optional
 import psycopg2
+import psycopg2.extras
 from psycopg2 import sql
 from psycopg2.extensions import connection as PGConnection
 

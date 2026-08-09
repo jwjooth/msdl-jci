@@ -11,7 +11,14 @@ dependencies = [
     "beautifulsoup4==4.15.0",
     "feedparser>=6.0.14",
     "httpx==1.0.dev3",
+    "numpy>=1.26.0",
+    "pandas>=2.2.0",
     "pandas-stubs~=2.2.2",
+    "psycopg2-binary>=2.9.0",
+    "python-dotenv>=1.0.0",
+    "scikit-learn>=1.4.0",
+    "sqlalchemy>=2.0.0",
+    "yfinance>=0.2.0",
 ]
 
 [project.scripts]

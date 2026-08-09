@@ -1,2 +1,5 @@
-def main() -> None:
-    print("hello world")
+"""msdl_jci package."""
+
+from msdl_jci.main import main
+
+__all__ = ["main"]
