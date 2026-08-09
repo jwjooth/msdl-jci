@@ -8,9 +8,9 @@ from numpy.typing import NDArray
 from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import MinMaxScaler
 
-from msdl_jci.core.config import get_settings
-from msdl_jci.core.logging import get_logger
-from msdl_jci.infrastructure.data_sources.csv_reader import read_numeric_series
+from msdl_jci.config import get_settings
+from msdl_jci.data_loader import read_numeric_series
+from msdl_jci.logging_config import get_logger
 
 logger = get_logger(__name__)
 
@@ -30,12 +30,7 @@ class MacroDataEncoder:
         self.kurs_result: Optional[TrainedMLPResult] = None
         self._encoded_features: Optional[NDArray[np.float64]] = None
 
-    def _train_single_series(
-        self,
-        csv_path: str,
-        column_name: str,
-        remove_symbol: str = "",
-    ) -> TrainedMLPResult:
+    def _train_single_series(self, csv_path: str, column_name: str, remove_symbol: str = "") -> TrainedMLPResult:
         values = read_numeric_series(csv_path, column_name, remove_symbol)
         data = values.reshape(-1, 1)
 
@@ -66,9 +61,7 @@ class MacroDataEncoder:
         logger.info("Training BI Rate model...")
         self.bi_result = self._train_single_series(bi_rate_csv, "BI-7Day-RR", "%")
         logger.info("Training Inflation model...")
-        self.inflation_result = self._train_single_series(
-            inflation_csv, "Data Inflasi", "%"
-        )
+        self.inflation_result = self._train_single_series(inflation_csv, "Data Inflasi", "%")
         logger.info("Training Kurs USD/IDR model...")
         self.kurs_result = self._train_single_series(kurs_csv, "Close")
 

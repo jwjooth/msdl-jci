@@ -13,7 +13,7 @@ dependencies = [
     "httpx==1.0.dev3",
     "numpy>=1.26.0",
     "pandas>=2.2.0",
-    "pandas-stubs~=2.2.2",
+    "pandas-stubs~=3.0.5",
     "psycopg2-binary>=2.9.0",
     "python-dotenv>=1.0.0",
     "scikit-learn>=1.4.0",

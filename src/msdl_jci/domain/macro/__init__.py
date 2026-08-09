@@ -1,1 +1,0 @@
-"""Macro-economic domain logic."""

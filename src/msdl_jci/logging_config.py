@@ -1,4 +1,4 @@
-"""Centralized logging helpers."""
+"""Project-wide logging configuration."""
 
 import logging
 import sys

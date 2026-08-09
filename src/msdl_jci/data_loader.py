@@ -1,4 +1,4 @@
-"""CSV data access helpers."""
+"""CSV loading helpers."""
 
 import pandas as pd
 

@@ -1,12 +1,12 @@
-"""Service layer for macro feature generation."""
+"""Application pipeline orchestration."""
 
 from numpy.typing import NDArray
 import numpy as np
 
-from msdl_jci.domain.macro.encoder import MacroDataEncoder
+from msdl_jci.macro_encoder import MacroDataEncoder
 
 
-class MacroEncodingService:
+class MacroPipeline:
     def __init__(self, look_back: int = 3) -> None:
         self.encoder = MacroDataEncoder(look_back=look_back)
 
