@@ -8,9 +8,9 @@ from numpy.typing import NDArray
 from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import MinMaxScaler
 
-from msdl_jci.config import get_settings
-from msdl_jci.data_loader import read_numeric_series
-from msdl_jci.logging_config import get_logger
+from config.config import get_settings
+from utils.data_loader import read_numeric_series
+from utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 

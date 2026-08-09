@@ -3,7 +3,7 @@
 from numpy.typing import NDArray
 import numpy as np
 
-from msdl_jci.macro_encoder import MacroDataEncoder
+from models.macro.macro_encoder import MacroDataEncoder
 
 
 class MacroPipeline:
