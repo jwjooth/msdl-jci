@@ -1,83 +1,155 @@
-# MSDL-JCI
+# MSDL-JCI (Multi-Source Deep Learning for Jakarta Composite Index)
 
-This project is a clean Python codebase for macro-economic feature engineering and JCI-related analysis. It is now arranged in a simple thesis-friendly structure so it is easy to read, maintain, and extend without forcing a backend-style architecture.
+Kerangka kerja modular Python berstandar industri (*src-layout*) untuk ekstraksi representasi multi-sumber, feature engineering data makroekonomi, teknikal pasar modal, dan sentimen/embedding berita finansial guna analisis IHSG (Jakarta Composite Index).
 
-## Project Goals
+---
 
-- Keep the code simple and readable
-- Separate reusable logic from script-style execution
-- Make maintenance easier for long-term development
-- Keep performance reasonable without overengineering
-- Leave room for future database or API work if needed
+## 🏛️ Arsitektur Direktori Standar Industri
 
-## Current Folder Structure
+Struktur proyek dirancang bersih dan modular mengikuti best practice Python packaging modern (PEP 518, PEP 621, and `src-layout`):
 
 ```text
-src/msdl_jci/
-|-- config.py
-|-- data_loader.py
-|-- logging_config.py
-|-- macro_encoder.py
-|-- pipeline.py
-`-- main.py
+MSDL-JCI/
+├── .env.example                # Template konfigurasi environment variable
+├── .gitignore                  # Aturan ignore git standar (venv, pycache, tests, db)
+├── pyproject.toml              # Definisi project metadata, dependencies, dan entrypoint
+├── README.md                   # Dokumentasi arsitektur dan panduan operasional
+├── uv.lock                     # Lockfile resolusi dependency dari uv
+│
+├── data/                       # Data storage (terpisah dari logic kode)
+│   ├── database/               # Database SQLite / Relational lokal
+│   │   └── berita_ihsg_enterprise.db
+│   ├── processed/              # Data hasil transformasi / feature embeddings
+│   │   ├── daily_news_embeddings.csv
+│   │   └── processed_daily_news.csv
+│   └── raw/                    # Raw historical dataset
+│       ├── macro/              # Data makroekonomi (BI-rate, inflasi, kurs USD/IDR)
+│       │   ├── bi_rate.csv
+│       │   ├── inflation_data.csv
+│       │   └── kurs_usdidr.csv
+│       └── technical/          # Data teknikal IHSG (OHLCV)
+│           └── jci_historical.csv
+│
+├── src/
+│   └── msdl_jci/               # Package utama MSDL-JCI
+│       ├── __init__.py         # Package root exports
+│       ├── main.py             # CLI Entrypoint aplikasi
+│       │
+│       ├── config/             # Manajemen Konfigurasi Terpusat
+│       │   ├── __init__.py
+│       │   └── settings.py     # Settings class, dynamic path resolution, env loader
+│       │
+│       ├── utils/              # Helper Umum & Reusable Modules
+│       │   ├── __init__.py
+│       │   ├── data_loader.py  # Loader CSV & numeric series parser yang aman
+│       │   └── logging_config.py # Standardized stream logger
+│       │
+│       ├── models/             # Modul Ekstraksi Representasi & Pipeline
+│       │   ├── __init__.py
+│       │   ├── macro/          # Macroeconomic MLP Encoder & Pipeline
+│       │   │   ├── __init__.py
+│       │   │   ├── encoder.py
+│       │   │   └── pipeline.py
+│       │   ├── technical/      # Technical Price MLP Encoder & Pipeline
+│       │   │   ├── __init__.py
+│       │   │   ├── encoder.py
+│       │   │   └── pipeline.py
+│       │   └── news/           # Financial News Representation Model & Pipeline
+│       │       ├── __init__.py
+│       │       ├── encoder.py
+│       │       └── pipeline.py
+│       │
+│       ├── preprocessing/      # Data cleansing & alignment pipeline
+│       │   ├── __init__.py
+│       │   ├── extract_embeddings.py
+│       │   ├── train_indobert_news.py
+│       │   ├── train_lstm_jci.py
+│       │   └── train_mlp_macro.py
+│       │
+│       └── scraping/           # News scraper crawlers
+│           ├── __init__.py
+│           ├── scraping_cnbc_indonesia_news.py
+│           ├── scraping_detik_news.py
+│           └── scraping_kontan_news.py
+│
+└── tests/                      # Automated Testing Suite (Pytest)
+    ├── __init__.py
+    ├── integration/            # Pengujian integrasi end-to-end
+    │   ├── __init__.py
+    │   └── test_pipeline.py
+    └── unit/                   # Pengujian unit per komponen
+        ├── __init__.py
+        ├── test_config.py
+        ├── test_data_loader.py
+        ├── test_macro_encoder.py
+        └── test_technical_encoder.py
 ```
 
-### What each file does
+---
 
-- `config.py`: project settings, paths, and environment loading
-- `data_loader.py`: CSV reading and numeric cleaning helpers
-- `logging_config.py`: reusable logging setup
-- `macro_encoder.py`: core macro feature encoding logic
-- `pipeline.py`: simple orchestration wrapper for the workflow
-- `main.py`: runnable entrypoint
+## ⚙️ Konfigurasi Sistem Terpusat (`src/msdl_jci/config/settings.py`)
 
-## Why this structure
+Aplikasi menggunakan `Settings` berbasis dataclass dengan caching (`lru_cache`) yang otomatis:
+- Mendeteksi `PROJECT_ROOT` tanpa hardcoding relative path manual.
+- Mengarahkan path dataset default ke folder `data/raw/macro/`, `data/raw/technical/`, dan `data/processed/`.
+- Membaca konfigurasi dari file `.env` jika tersedia.
 
-This layout keeps the project practical for thesis development:
+Untuk kustomisasi konfigurasi:
+1. Salin `.env.example` ke `.env`:
+   ```powershell
+   Copy-Item .env.example .env
+   ```
+2. Sesuaikan variabel seperti `ML_LOOK_BACK`, `LOG_LEVEL`, atau kredensial database jika menggunakan PostgreSQL.
 
-- no unnecessary backend layers
-- business logic stays in one place
-- data access is separated from model logic
-- the workflow is easy to trace from top to bottom
-- future changes will be easier to make because responsibilities are clear
+---
 
-## Workflow
+## 🚀 Panduan Instalasi & Eksekusi
 
-The current pipeline:
+### 1. Prasyarat
+- Python `>= 3.12`
+- Paket manajer modern: [`uv`](https://github.com/astral-sh/uv)
 
-1. reads macro-economic CSV data
-2. cleans and converts numeric series
-3. trains the MLP-based encoder
-4. combines the encoded macro features into one matrix
-
-## How to run
-
-Use the virtual environment interpreter:
-
+### 2. Instalasi Dependencies
 ```powershell
-.\.venv\Scripts\python.exe -m msdl_jci.main
+uv sync
 ```
 
-## Best-Practice Notes
+### 3. Menjalankan Pipeline Utama
 
-- Keep reusable logic inside modules, not inside one-off scripts
-- Put file reading and preprocessing in separate helpers
-- Keep the main entrypoint thin
-- Avoid mixing database, file, and ML logic in the same file
-- Prefer small, focused modules over deep folder nesting
+Anda dapat menjalankan pipeline melalui command line script atau Python module runner:
 
-## What was cleaned up
+**Opsi A (CLI Console Script):**
+```powershell
+uv run msdl-jci
+```
 
-- removed the previous FastAPI-style layering
-- removed duplicate legacy scripts and unused structure
-- kept only the minimal modules needed for the current workflow
+**Opsi B (Python Module):**
+```powershell
+uv run python -m msdl_jci.main
+```
 
-## Future Growth
+---
 
-If you later want to add more advanced features, you can still expand this structure gradually:
+## 🧪 Pengujian Otomatis (Testing)
 
-- add a `database/` module for PostgreSQL
-- add a `features/` module if feature engineering grows
-- add a `scripts/` folder for standalone experiments
-- add tests for the loader, encoder, and pipeline
+Proyek ini telah dilengkapi dengan unit test dan integration test untuk menjamin keandalan fungsionalitas modul dan koneksi pipeline data.
 
+Jalankan test suite dengan:
+```powershell
+uv run pytest -v
+```
+
+Untuk melihat cakupan kode (coverage report):
+```powershell
+uv run pytest --cov=msdl_jci
+```
+
+---
+
+## 🛠️ Modul & Komponen Kunci
+
+- **`msdl_jci.config.settings`**: Sumber kebenaran tunggal (*single source of truth*) untuk direktori proyek, path file dataset, dan parameter machine learning.
+- **`msdl_jci.utils.data_loader`**: Fungsi utilitas untuk membaca, memvalidasi kolom, dan membersihkan format numerik dataset time-series.
+- **`msdl_jci.models.macro`**: Menghandle pelatihan regresi non-linear dan pembentukan embedding gabungan dari BI-7Day-RR, inflasi, dan kurs USD/IDR.
+- **`msdl_jci.models.technical`**: Mengonstruksi regresi sekuensial pada harga penutupan IHSG historis.
+- **`msdl_jci.models.news`**: Menyediakan arsitektur pipeline untuk pemodelan embedding berita finansial hasil ekstraksi IndoBERT.
