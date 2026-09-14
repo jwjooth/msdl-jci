@@ -22,7 +22,13 @@ dependencies = [
     "pytest-cov>=7.1.0",
     "python-dotenv==1.2.3",
     "scikit-learn>=1.4.0",
+<<<<<<< HEAD
     "scipy>=1.10.0",
+||||||| c9f8f7e
+    "sqlalchemy>=2.0.0",
+    "yfinance>=0.2.0",
+=======
+>>>>>>> main
     "sqlalchemy==2.0.52",
     "torch>=2.14.0",
     "yfinance==1.7.0",
