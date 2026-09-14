@@ -1,0 +1,4 @@
+[walk_forward]
+train_ratio = 0.70
+val_ratio = 0.10
+embargo = 5

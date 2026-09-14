@@ -1,0 +1,7 @@
+[model]
+gating_temperature = 2.0
+gating_min_weight = 0.05
+modality_dropout = 0.05
+
+[training]
+entropy_lambda = 0.01
