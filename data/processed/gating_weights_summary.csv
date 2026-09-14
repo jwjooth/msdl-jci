@@ -1,11 +1,4 @@
 Modality,Weight Parameter,Mean Weight,Contribution (%)
-<<<<<<< HEAD
 Technical (LSTM),alpha,0.2943,29.43
 Macroeconomic (MLP),beta,0.4197,41.97
 Financial News (IndoBERT),gamma,0.286,28.6
-||||||| c9f8f7e
-=======
-Technical (LSTM),alpha,0.1895,18.95
-Macroeconomic (MLP),beta,0.5056,50.56
-Financial News (IndoBERT),gamma,0.3049,30.49
->>>>>>> main
