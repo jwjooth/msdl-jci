@@ -2,7 +2,7 @@
 
 import numpy as np
 import pandas as pd
-import pytest
+
 from msdl_jci.utils.dataset_builder import (
     MultiSourceDatasetBuilder,
     calculate_technical_indicators,

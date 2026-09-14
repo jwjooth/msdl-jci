@@ -1,4 +1,5 @@
 import sqlite3
+
 import pandas as pd
 
 MONTH_MAP = {
@@ -23,7 +24,7 @@ def parse_indonesian_dates(series: pd.Series) -> pd.Series:
     day = extracted[0].str.zfill(2)
     month = extracted[1].str.lower().map(MONTH_MAP)
     year = extracted[2]
-    
+
     date_str = year + '-' + month + '-' + day
     return pd.to_datetime(date_str, format='%Y-%m-%d', errors='coerce')
 

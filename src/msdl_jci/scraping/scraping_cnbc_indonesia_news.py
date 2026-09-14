@@ -6,7 +6,6 @@ import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List
 
 from bs4 import BeautifulSoup
 from curl_cffi import requests
@@ -26,7 +25,7 @@ class CNBCRSSDeepScraper:
             "terbaru": "https://www.cnbcindonesia.com/rss",
         }
 
-    def _get_rss_metadata(self) -> List[Dict[str, str]]:
+    def _get_rss_metadata(self) -> list[dict[str, str]]:
         """Tahap 1: Mengambil metadata (URL) dari RSS."""
         all_articles = []
         seen_urls = set()
@@ -60,7 +59,7 @@ class CNBCRSSDeepScraper:
         session.close()
         return all_articles
 
-    def _fetch_content(self, article: Dict[str, str]) -> Dict[str, str]:
+    def _fetch_content(self, article: dict[str, str]) -> dict[str, str]:
         """Tahap 2: Mengunjungi URL dan mengekstrak teks berita HTML."""
         url = article["url"]
         article["content"] = ""
@@ -93,7 +92,7 @@ class CNBCRSSDeepScraper:
 
         return article
 
-    def execute_deep_scrape(self, limit: int = 10) -> List[Dict[str, str]]:
+    def execute_deep_scrape(self, limit: int = 10) -> list[dict[str, str]]:
         # 1. Ambil semua link dari RSS
         metadata_list = self._get_rss_metadata()
         logger.info(f"Found {len(metadata_list)} unique URLs from RSS.")
@@ -116,7 +115,7 @@ class CNBCRSSDeepScraper:
         print()  # New line after progress
         return final_dataset
 
-    def export_data(self, articles: List[Dict[str, str]], filename_prefix: str = "cnbc_deep_scrape"):
+    def export_data(self, articles: list[dict[str, str]], filename_prefix: str = "cnbc_deep_scrape"):
         if not articles:
             return
 

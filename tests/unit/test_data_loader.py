@@ -1,8 +1,8 @@
 """Unit tests for data loader."""
 
-import pytest
 import numpy as np
-import pandas as pd
+import pytest
+
 from msdl_jci.utils.data_loader import read_numeric_series
 
 

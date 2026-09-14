@@ -1,0 +1,98 @@
+[
+  {
+    "config": "baseline",
+    "test_auc": 0.4921,
+    "test_mcc": -0.0152,
+    "prob_std": 0.00205,
+    "gate_ent": 0.8634,
+    "gate_mean": [
+      0.139,
+      0.666,
+      0.195
+    ]
+  },
+  {
+    "config": "temperature-2.0",
+    "test_auc": 0.51,
+    "test_mcc": 0.0,
+    "prob_std": 0.00195,
+    "gate_ent": 1.0854,
+    "gate_mean": [
+      0.355,
+      0.385,
+      0.26
+    ]
+  },
+  {
+    "config": "min-weight-0.05",
+    "test_auc": 0.5122,
+    "test_mcc": 0.0,
+    "prob_std": 0.00299,
+    "gate_ent": 1.0291,
+    "gate_mean": [
+      0.367,
+      0.46,
+      0.174
+    ]
+  },
+  {
+    "config": "entropy-0.01",
+    "test_auc": 0.5206,
+    "test_mcc": 0.0,
+    "prob_std": 0.00226,
+    "gate_ent": 1.0938,
+    "gate_mean": [
+      0.345,
+      0.366,
+      0.289
+    ]
+  },
+  {
+    "config": "entropy-0.05",
+    "test_auc": 0.5149,
+    "test_mcc": 0.0,
+    "prob_std": 0.00244,
+    "gate_ent": 1.0984,
+    "gate_mean": [
+      0.338,
+      0.337,
+      0.325
+    ]
+  },
+  {
+    "config": "modality-dropout-0.1",
+    "test_auc": 0.5265,
+    "test_mcc": 0.0,
+    "prob_std": 0.00147,
+    "gate_ent": 1.0845,
+    "gate_mean": [
+      0.261,
+      0.345,
+      0.395
+    ]
+  },
+  {
+    "config": "aux-0.1",
+    "test_auc": 0.3794,
+    "test_mcc": -0.0908,
+    "prob_std": 0.00276,
+    "gate_ent": 0.6454,
+    "gate_mean": [
+      0.145,
+      0.789,
+      0.066
+    ]
+  },
+  {
+    "config": "combined(temp2+minw05+ent01)",
+    "test_auc": 0.5275,
+    "test_mcc": 0.0941,
+    "prob_std": 0.0031,
+    "gate_ent": 1.0949,
+    "gate_mean": [
+      0.332,
+      0.369,
+      0.299
+    ]
+  }
+]

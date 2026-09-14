@@ -1,9 +1,10 @@
 """Application settings and project paths configuration."""
 
-from dataclasses import dataclass, field
-from functools import lru_cache
 import os
+from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 # Resolve project root: this file is at src/msdl_jci/config/settings.py -> parents[3] is project root

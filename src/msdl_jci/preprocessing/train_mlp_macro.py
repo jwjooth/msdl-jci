@@ -1,15 +1,19 @@
-import os
 import sqlite3
+
 import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader, Dataset
 
 # Fallback-safe MinMaxScaler & Evaluation Metrics
 try:
+    from sklearn.metrics import (
+        mean_absolute_error,
+        mean_absolute_percentage_error,
+        mean_squared_error,
+    )
     from sklearn.preprocessing import MinMaxScaler
-    from sklearn.metrics import mean_squared_error, mean_absolute_error, mean_absolute_percentage_error
 except ImportError:
     class MinMaxScaler:
         def __init__(self, feature_range=(0, 1)):
@@ -193,7 +197,7 @@ def train_and_evaluate_macro_mlp(
     # 1. Load and align data
     df_macro = load_and_align_macro_data(db_path)
     macro_cols = ['usd_idr', 'bi_rate', 'inflation_rate', 'usd_idr_pct_change', 'bi_rate_diff', 'inflation_diff']
-    
+
     X_raw = df_macro[macro_cols].values
     y_raw = df_macro[['jci_close']].values
 
@@ -310,7 +314,7 @@ def train_and_evaluate_macro_mlp(
     latent_df.to_csv("macro_latent_features.csv", index=False)
 
     print(f"[SUCCESS] Model weights saved to '{best_weights_path}'")
-    print(f"[SUCCESS] Evaluation saved to 'macro_mlp_evaluation.csv'")
+    print("[SUCCESS] Evaluation saved to 'macro_mlp_evaluation.csv'")
     print(f"[SUCCESS] Latent embeddings ({len(latent_df)}x{len(latent_cols)}) saved to 'macro_latent_features.csv'!")
 
     return model, latent_df

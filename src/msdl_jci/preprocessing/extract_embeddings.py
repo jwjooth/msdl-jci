@@ -1,22 +1,23 @@
 import os
-import torch
-import pandas as pd
+
 import numpy as np
+import pandas as pd
+import torch
 from tqdm import tqdm
-from transformers import AutoTokenizer, AutoModel
+from transformers import AutoModel, AutoTokenizer
 
 
 def mean_pooling(model_output, attention_mask: torch.Tensor) -> torch.Tensor:
     """
     Computes attention-weighted mean pooling over token embeddings.
-    
+
     Formula:
         mean_embedding = sum(token_embeddings * attention_mask) / sum(attention_mask)
-        
+
     Args:
         model_output: HuggingFace model output containing `last_hidden_state`.
         attention_mask: Tensor of shape (batch_size, seq_len) indicating non-padded tokens.
-        
+
     Returns:
         Tensor of shape (batch_size, hidden_dim) containing sentence-level embeddings.
     """
@@ -36,7 +37,7 @@ def extract_indobert_embeddings(
     model_name: str = "indobenchmark/indobert-base-p2",
     batch_size: int = 16,
     max_length: int = 512,
-    device: str = None
+    device: str = None,
 ) -> pd.DataFrame:
     """
     Extracts dense 768-dimensional embeddings for daily news texts using frozen IndoBERT.
@@ -49,15 +50,15 @@ def extract_indobert_embeddings(
 
     # 2. Load Input Dataset
     if not os.path.exists(input_csv):
-        raise FileNotFoundError(f"Input file '{input_csv}' not found. Please run preprocessing first.")
-    
+        raise FileNotFoundError(
+            f"Input file '{input_csv}' not found. Please run preprocessing first."
+        )
+
     df = pd.read_csv(input_csv)
     print(f"[INFO] Loaded {len(df)} daily records from '{input_csv}'")
 
     # Combine title & content for richer contextual signals
-    texts = (
-        df['title'].fillna('') + ". " + df['content'].fillna('')
-    ).str.strip().tolist()
+    texts = (df["title"].fillna("") + ". " + df["content"].fillna("")).str.strip().tolist()
 
     # 3. Model & Tokenizer Initialization
     print(f"[INFO] Initializing tokenizer & frozen model: '{model_name}'...")
@@ -74,9 +75,13 @@ def extract_indobert_embeddings(
     all_embeddings = []
     total_batches = int(np.ceil(len(texts) / batch_size))
 
-    print(f"[INFO] Starting text feature extraction (batch_size={batch_size}, max_length={max_length})...")
+    print(
+        f"[INFO] Starting text feature extraction (batch_size={batch_size}, max_length={max_length})..."
+    )
     with torch.no_grad():
-        for i in tqdm(range(0, len(texts), batch_size), total=total_batches, desc="Extracting Embeddings"):
+        for i in tqdm(
+            range(0, len(texts), batch_size), total=total_batches, desc="Extracting Embeddings"
+        ):
             batch_texts = texts[i : i + batch_size]
 
             # Tokenization with padding and truncation
@@ -85,15 +90,15 @@ def extract_indobert_embeddings(
                 padding=True,
                 truncation=True,
                 max_length=max_length,
-                return_tensors="pt"
+                return_tensors="pt",
             ).to(device_obj)
 
             # Forward pass through frozen IndoBERT
             outputs = model(**encoded_inputs)
 
             # Attention-aware Mean Pooling
-            pooled_embeddings = mean_pooling(outputs, encoded_inputs['attention_mask'])
-            
+            pooled_embeddings = mean_pooling(outputs, encoded_inputs["attention_mask"])
+
             # Transfer to CPU numpy array
             all_embeddings.append(pooled_embeddings.cpu().numpy())
 
@@ -107,7 +112,9 @@ def extract_indobert_embeddings(
 
     # 7. Save to CSV
     emb_df.to_csv(output_csv, index=False)
-    print(f"[SUCCESS] Dense text feature representations ({len(emb_df)}x{hidden_dim}) saved to '{output_csv}'!")
+    print(
+        f"[SUCCESS] Dense text feature representations ({len(emb_df)}x{hidden_dim}) saved to '{output_csv}'!"
+    )
 
     return emb_df
 
@@ -118,5 +125,5 @@ if __name__ == "__main__":
         output_csv="daily_news_embeddings.csv",
         model_name="indobenchmark/indobert-base-p2",
         batch_size=16,
-        max_length=512
+        max_length=512,
     )

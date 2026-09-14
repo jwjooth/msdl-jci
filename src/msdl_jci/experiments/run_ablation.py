@@ -14,16 +14,14 @@ Produces:
 - Evaluation artifact CSVs for thesis defense presentation
 """
 
-import os
 from pathlib import Path
-from typing import Dict, List, Optional, Union
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 
 from msdl_jci.config.settings import get_settings
-from msdl_jci.evaluation.walk_forward import evaluate_model_walk_forward, EvaluationResults
+from msdl_jci.evaluation.walk_forward import EvaluationResults, evaluate_model_walk_forward
 from msdl_jci.models.fusion import (
     AdaptiveSoftGatingFusionModel,
     LSTMMacroModel,
@@ -38,12 +36,12 @@ logger = get_logger(__name__)
 
 
 def run_thesis_experiments(
-    output_dir: Optional[Union[str, Path]] = None,
+    output_dir: str | Path | None = None,
     epochs: int = 50,
     batch_size: int = 32,
     patience: int = 10,
     seed: int = 42,
-) -> Dict[str, EvaluationResults]:
+) -> dict[str, EvaluationResults]:
     """Run full suite of ablation models and produce comparative tables."""
     import torch
     torch.manual_seed(seed)
@@ -59,25 +57,34 @@ def run_thesis_experiments(
     logger.info("STARTING MSDL-JCI THESIS DEFENSE EXPERIMENTATION SUITE")
     logger.info("=" * 60)
 
-    # 1. Prepare Aligned Multi-Source Dataset
+    # 1. Prepare Aligned Multi-Source Dataset (leak-free: scalers fit on train prefix)
     logger.info("Building multi-source dataset and sliding window tensors...")
     builder = MultiSourceDatasetBuilder()
     df_aligned = builder.build_aligned_dataframe()
-    tensors, _, _ = builder.create_multisource_tensors(df_aligned)
+    _lb = builder.look_back
+    _n_win = len(df_aligned) - _lb + 1
+    _train_end_df = int(_n_win * 0.70) + _lb - 1
+    tensors, _, _ = builder.create_multisource_tensors(df_aligned, train_end_idx=_train_end_df)
     logger.info("Tensors constructed: N=%d, Lookback=%d", len(tensors.y), tensors.X_tech.shape[1])
 
     # 2. Define Model Configurations for Ablation Study
+    _pos_rate = float(np.mean(tensors.y[: int(len(tensors.y) * 0.70)]))
     experiments = [
         ("Pure LSTM (Technical only)", lambda: PureLSTMModel()),
         ("LSTM + Macro", lambda: LSTMMacroModel()),
         ("LSTM + News", lambda: LSTMNewsModel()),
         ("LSTM + Static Fusion", lambda: StaticFusionModel()),
-        ("Proposed (Adaptive Soft Gating)", lambda: AdaptiveSoftGatingFusionModel()),
+        (
+            "Proposed (Adaptive Soft Gating)",
+            lambda: AdaptiveSoftGatingFusionModel(
+                pos_rate=_pos_rate, modality_dropout=0.05
+            ),
+        ),
     ]
 
-    results: Dict[str, EvaluationResults] = {}
-    clf_rows = []
-    fin_rows = []
+    results: dict[str, EvaluationResults] = {}
+    clf_rows: list[dict] = []
+    fin_rows: list[dict] = []
 
     # 3. Run Walk-Forward Evaluation for Each Model
     for model_name, model_fn in experiments:
@@ -89,16 +96,17 @@ def run_thesis_experiments(
             epochs=epochs,
             batch_size=batch_size,
             patience=patience,
+            seed=seed,
         )
         results[model_name] = res
 
         # Collect classification row
-        cd = res.classification_metrics.to_dict()
+        cd: dict = dict(res.classification_metrics.to_dict())
         cd["Model"] = model_name
         clf_rows.append(cd)
 
         # Collect financial row
-        fd = res.financial_metrics.to_dict()
+        fd: dict = dict(res.financial_metrics.to_dict())
         fd["Model"] = model_name
         fin_rows.append(fd)
 
@@ -176,5 +184,17 @@ def run_thesis_experiments(
     return results
 
 
+def main(argv=None) -> int:
+    """CLI entrypoint for `msdl-jci-ablation`."""
+    import argparse
+
+    ap = argparse.ArgumentParser(description="MSDL-JCI ablation suite")
+    ap.add_argument("--epochs", type=int, default=35)
+    ap.add_argument("--output-dir", type=str, default=None)
+    args = ap.parse_args(argv)
+    run_thesis_experiments(output_dir=args.output_dir, epochs=args.epochs)
+    return 0
+
+
 if __name__ == "__main__":
-    run_thesis_experiments(epochs=35)
+    raise SystemExit(main())

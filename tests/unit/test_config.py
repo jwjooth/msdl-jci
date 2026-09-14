@@ -1,6 +1,5 @@
 """Unit tests for configuration and settings."""
 
-from pathlib import Path
 from msdl_jci.config.settings import Settings, get_settings
 
 

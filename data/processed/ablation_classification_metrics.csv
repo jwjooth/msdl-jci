@@ -1,6 +1,6 @@
 Model,Accuracy,F1-Score,Precision,Recall,ROC-AUC
-Pure LSTM (Technical only),57.56,73.06,57.56,100.0,0.5453
-LSTM + Macro,57.56,73.06,57.56,100.0,0.5061
-LSTM + News,57.29,72.76,57.49,99.08,0.5087
-LSTM + Static Fusion,56.5,71.02,57.59,92.63,0.4666
-Proposed (Adaptive Soft Gating),57.56,72.97,57.6,99.54,0.3656
+Pure LSTM (Technical only),47.58,38.49,61.0,28.11,0.5669
+LSTM + Macro,59.68,73.4,59.65,95.39,0.5646
+LSTM + News,56.45,62.15,63.03,61.29,0.5648
+LSTM + Static Fusion,58.33,73.68,58.33,100.0,0.4552
+Proposed (Adaptive Soft Gating),51.08,55.61,59.07,52.53,0.5288

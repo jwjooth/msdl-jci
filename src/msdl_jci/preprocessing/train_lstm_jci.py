@@ -1,16 +1,21 @@
-import os
 import sqlite3
+
 import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader, Dataset
 
 # Safe imports for Scaler and Metrics with native pure-NumPy fallbacks
 try:
+    from sklearn.metrics import (
+        mean_absolute_error,
+        mean_absolute_percentage_error,
+        mean_squared_error,
+    )
     from sklearn.preprocessing import MinMaxScaler
-    from sklearn.metrics import mean_squared_error, mean_absolute_error, mean_absolute_percentage_error
 except ImportError:
+
     class MinMaxScaler:
         def __init__(self, feature_range=(0, 1)):
             self.min_val = None
@@ -44,58 +49,62 @@ except ImportError:
         return np.mean(np.abs(np.asarray(y_true) - np.asarray(y_pred)))
 
     def mean_absolute_percentage_error(y_true, y_pred):
-        return np.mean(np.abs((np.asarray(y_true) - np.asarray(y_pred)) / (np.asarray(y_true) + 1e-9)))
+        return np.mean(
+            np.abs((np.asarray(y_true) - np.asarray(y_pred)) / (np.asarray(y_true) + 1e-9))
+        )
 
 
 # ==============================================================================
 # 1. FEATURE ENGINEERING (TECHNICAL INDICATORS)
 # ==============================================================================
-def calculate_technical_indicators(df: pd.DataFrame, rsi_period: int = 14, atr_period: int = 14) -> pd.DataFrame:
+def calculate_technical_indicators(
+    df: pd.DataFrame, rsi_period: int = 14, atr_period: int = 14
+) -> pd.DataFrame:
     """
     Computes technical momentum and volatility indicators (RSI & ATR) from OHLCV data.
-    
+
     Mathematical Foundations:
     1. RSI (Relative Strength Index - Wilder's Smoothing):
        - Measures the speed and change of price movements (momentum oscillator: 0 - 100).
        - Delta = Close_t - Close_{t-1}
        - RS = EMA(Gain, period) / EMA(Loss, period)
        - RSI = 100 - (100 / (1 + RS))
-       
+
     2. ATR (Average True Range):
        - Quantifies market volatility by decomposing the entire range of an asset.
        - TR = max(High - Low, |High - Close_{prev}|, |Low - Close_{prev}|)
        - ATR = EMA(TR, period)
     """
     df = df.copy()
-    
+
     # Ensure numerical types and sorting
-    for col in ['Open', 'High', 'Low', 'Close', 'Volume']:
-        df[col] = pd.to_numeric(df[col], errors='coerce')
-    df = df.sort_values('Date').reset_index(drop=True)
+    for col in ["Open", "High", "Low", "Close", "Volume"]:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+    df = df.sort_values("Date").reset_index(drop=True)
 
     # --- 1.1 Calculate RSI ---
-    delta = df['Close'].diff()
+    delta = df["Close"].diff()
     gain = delta.clip(lower=0)
     loss = -delta.clip(upper=0)
-    
+
     # Exponential Weighted Moving Average (Wilder's style: alpha = 1 / period)
-    avg_gain = gain.ewm(alpha=1/rsi_period, min_periods=rsi_period, adjust=False).mean()
-    avg_loss = loss.ewm(alpha=1/rsi_period, min_periods=rsi_period, adjust=False).mean()
-    
+    avg_gain = gain.ewm(alpha=1 / rsi_period, min_periods=rsi_period, adjust=False).mean()
+    avg_loss = loss.ewm(alpha=1 / rsi_period, min_periods=rsi_period, adjust=False).mean()
+
     rs = avg_gain / (avg_loss + 1e-9)
-    df['RSI'] = 100 - (100 / (1 + rs))
+    df["RSI"] = 100 - (100 / (1 + rs))
 
     # --- 1.2 Calculate ATR ---
-    prev_close = df['Close'].shift(1)
-    tr1 = df['High'] - df['Low']
-    tr2 = (df['High'] - prev_close).abs()
-    tr3 = (df['Low'] - prev_close).abs()
-    
+    prev_close = df["Close"].shift(1)
+    tr1 = df["High"] - df["Low"]
+    tr2 = (df["High"] - prev_close).abs()
+    tr3 = (df["Low"] - prev_close).abs()
+
     true_range = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
-    df['ATR'] = true_range.ewm(alpha=1/atr_period, min_periods=atr_period, adjust=False).mean()
+    df["ATR"] = true_range.ewm(alpha=1 / atr_period, min_periods=atr_period, adjust=False).mean()
 
     # --- 1.3 Moving Average Context (SMA-20) ---
-    df['SMA_20'] = df['Close'].rolling(window=20).mean()
+    df["SMA_20"] = df["Close"].rolling(window=20).mean()
 
     # Drop warm-up NaN rows caused by indicator rolling windows
     df_clean = df.dropna().reset_index(drop=True)
@@ -136,20 +145,20 @@ class JCIStockLSTM(nn.Module):
     """
     Stacked LSTM with Dropout regularization and dense regression head for IHSG price prediction.
     """
-    def __init__(self, input_dim: int, hidden_dim: int = 64, num_layers: int = 2, dropout: float = 0.2):
+
+    def __init__(
+        self, input_dim: int, hidden_dim: int = 64, num_layers: int = 2, dropout: float = 0.2
+    ):
         super().__init__()
         self.lstm = nn.LSTM(
             input_size=input_dim,
             hidden_size=hidden_dim,
             num_layers=num_layers,
             batch_first=True,
-            dropout=dropout if num_layers > 1 else 0.0
+            dropout=dropout if num_layers > 1 else 0.0,
         )
         self.regressor = nn.Sequential(
-            nn.Linear(hidden_dim, 32),
-            nn.ReLU(),
-            nn.Dropout(0.1),
-            nn.Linear(32, 1)
+            nn.Linear(hidden_dim, 32), nn.ReLU(), nn.Dropout(0.1), nn.Linear(32, 1)
         )
 
     def forward(self, x):
@@ -171,7 +180,7 @@ def train_and_evaluate_jci_lstm(
     batch_size: int = 32,
     epochs: int = 100,
     lr: float = 1e-3,
-    patience: int = 15
+    patience: int = 15,
 ):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"[INFO] Running on compute device: {device}")
@@ -183,11 +192,11 @@ def train_and_evaluate_jci_lstm(
 
     # --- Step 2: Feature Engineering (OHLCV + RSI + ATR + SMA) ---
     df_feat = calculate_technical_indicators(df_raw, rsi_period=14, atr_period=14)
-    feature_cols = ['Open', 'High', 'Low', 'Close', 'Volume', 'RSI', 'ATR', 'SMA_20']
+    feature_cols = ["Open", "High", "Low", "Close", "Volume", "RSI", "ATR", "SMA_20"]
     print(f"[INFO] Features computed: {feature_cols}")
 
     data_values = df_feat[feature_cols].values
-    close_values = df_feat[['Close']].values
+    close_values = df_feat[["Close"]].values
 
     # --- Step 3: Chronological Train-Test Split (Strict Time-Series Order) ---
     split_idx = int(len(data_values) * train_split)
@@ -210,7 +219,7 @@ def train_and_evaluate_jci_lstm(
 
     # --- Step 5: Sliding Window 3D Tensor Construction ---
     X_train, y_train = create_sliding_windows(train_scaled, train_target_scaled, lookback=lookback)
-    
+
     # For test set, append last 'lookback' steps of train to prevent lookahead boundary loss
     full_test_features = np.vstack([train_scaled[-lookback:], test_scaled])
     full_test_target = np.concatenate([train_target_scaled[-lookback:], test_target_scaled])
@@ -228,17 +237,19 @@ def train_and_evaluate_jci_lstm(
     # --- Step 6: Initialize Model, Loss, Optimizer & Scheduler ---
     input_dim = len(feature_cols)
     model = JCIStockLSTM(input_dim=input_dim, hidden_dim=64, num_layers=2, dropout=0.2).to(device)
-    
+
     criterion = nn.HuberLoss(delta=1.0)  # Robust against extreme stock outlier shocks
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=5)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode="min", factor=0.5, patience=5
+    )
 
     # --- Step 7: Training Loop with Early Stopping ---
-    best_loss = float('inf')
+    best_loss = float("inf")
     early_stop_counter = 0
     best_weights_path = "best_jci_lstm.pt"
 
-    print("\n" + "="*50 + "\n[INFO] Starting LSTM Model Training...\n" + "="*50)
+    print("\n" + "=" * 50 + "\n[INFO] Starting LSTM Model Training...\n" + "=" * 50)
     for epoch in range(1, epochs + 1):
         model.train()
         train_loss = 0.0
@@ -268,7 +279,9 @@ def train_and_evaluate_jci_lstm(
         scheduler.step(val_loss)
 
         if epoch % 5 == 0 or epoch == 1:
-            print(f"Epoch [{epoch:03d}/{epochs:03d}] | Train Loss: {train_loss:.6f} | Test Loss: {val_loss:.6f}")
+            print(
+                f"Epoch [{epoch:03d}/{epochs:03d}] | Train Loss: {train_loss:.6f} | Test Loss: {val_loss:.6f}"
+            )
 
         # Check early stopping
         if val_loss < best_loss:
@@ -278,7 +291,9 @@ def train_and_evaluate_jci_lstm(
         else:
             early_stop_counter += 1
             if early_stop_counter >= patience:
-                print(f"[INFO] Early stopping triggered at epoch {epoch} (Best Val Loss: {best_loss:.6f})")
+                print(
+                    f"[INFO] Early stopping triggered at epoch {epoch} (Best Val Loss: {best_loss:.6f})"
+                )
                 break
 
     # --- Step 8: Final Model Evaluation & Metric Computation ---
@@ -286,7 +301,9 @@ def train_and_evaluate_jci_lstm(
     model.eval()
 
     with torch.no_grad():
-        test_preds_scaled = model(torch.tensor(X_test, dtype=torch.float32).to(device)).cpu().numpy()
+        test_preds_scaled = (
+            model(torch.tensor(X_test, dtype=torch.float32).to(device)).cpu().numpy()
+        )
 
     # Inverse transform to original IDR price scale
     y_true_actual = target_scaler.inverse_transform(y_test.reshape(-1, 1)).flatten()
@@ -302,24 +319,22 @@ def train_and_evaluate_jci_lstm(
     dir_pred = np.sign(y_pred_actual[1:] - y_true_actual[:-1])
     directional_accuracy = np.mean(dir_true == dir_pred) * 100
 
-    print("\n" + "="*50)
+    print("\n" + "=" * 50)
     print("       FINAL JCI / IHSG EVALUATION METRICS       ")
-    print("="*50)
+    print("=" * 50)
     print(f"RMSE (Root Mean Squared Error) : {rmse:.2f} IDR pts")
     print(f"MAE  (Mean Absolute Error)     : {mae:.2f} IDR pts")
     print(f"MAPE (Mean Absolute % Error)   : {mape:.2f}%")
     print(f"Directional Accuracy (Hit Rate): {directional_accuracy:.2f}%")
-    print("="*50)
+    print("=" * 50)
 
     # Save evaluation predictions
-    test_dates = df_feat['Date'].iloc[split_idx:].values
-    eval_df = pd.DataFrame({
-        'Date': test_dates,
-        'Actual_Close': y_true_actual,
-        'Predicted_Close': y_pred_actual
-    })
+    test_dates = df_feat["Date"].iloc[split_idx:].values
+    eval_df = pd.DataFrame(
+        {"Date": test_dates, "Actual_Close": y_true_actual, "Predicted_Close": y_pred_actual}
+    )
     eval_df.to_csv("jci_lstm_evaluation.csv", index=False)
-    print(f"[SUCCESS] Evaluation results saved to 'jci_lstm_evaluation.csv'!")
+    print("[SUCCESS] Evaluation results saved to 'jci_lstm_evaluation.csv'!")
 
     return model, eval_df
 
@@ -332,5 +347,5 @@ if __name__ == "__main__":
         batch_size=32,
         epochs=80,
         lr=1e-3,
-        patience=12
+        patience=12,
     )

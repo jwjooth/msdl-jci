@@ -1,7 +1,7 @@
 """Financial news pipeline orchestration."""
 
 from pathlib import Path
-from typing import Optional, Union
+
 import numpy as np
 from numpy.typing import NDArray
 
@@ -17,7 +17,7 @@ class NewsPipeline:
 
     def build_news_prediction(
         self,
-        news_csv: Optional[Union[str, Path]] = None,
+        news_csv: str | Path | None = None,
         feature_column: str = "mean_embedding",
     ) -> NDArray[np.float64]:
         """Train model on news embeddings and return predictions."""

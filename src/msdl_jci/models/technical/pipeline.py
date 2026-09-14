@@ -1,7 +1,7 @@
 """Technical price prediction pipeline."""
 
 from pathlib import Path
-from typing import Optional, Union
+
 import numpy as np
 from numpy.typing import NDArray
 
@@ -17,7 +17,7 @@ class TechnicalPipeline:
 
     def build_price_prediction(
         self,
-        price_csv: Optional[Union[str, Path]] = None,
+        price_csv: str | Path | None = None,
         column_name: str = "Close",
     ) -> NDArray[np.float64]:
         """Train model and return predictions, using Settings default path if omitted."""
