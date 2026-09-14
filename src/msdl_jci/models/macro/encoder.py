@@ -2,9 +2,10 @@
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Union, Any
 
 import numpy as np
+from numpy import dtype, float64, ndarray
 from numpy.typing import NDArray
 from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import MinMaxScaler
@@ -71,7 +72,7 @@ class MacroDataEncoder:
         bi_rate_csv: Union[str, Path],
         inflation_csv: Union[str, Path],
         kurs_csv: Union[str, Path],
-    ) -> NDArray[np.float64]:
+    ) -> ndarray[tuple[Any, ...], dtype[float64]] | None:
         logger.info("Training BI Rate model from %s...", bi_rate_csv)
         self.bi_result = self._train_single_series(bi_rate_csv, "BI-7Day-RR", "%")
 

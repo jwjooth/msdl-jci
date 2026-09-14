@@ -41,6 +41,8 @@ class Settings:
     KURS_CSV: Path = PROJECT_ROOT / "data" / "raw" / "macro" / "kurs_usdidr.csv"
     JCI_HISTORICAL_CSV: Path = PROJECT_ROOT / "data" / "raw" / "technical" / "jci_historical.csv"
     SQLITE_DB_PATH: Path = PROJECT_ROOT / "data" / "database" / "berita_ihsg_enterprise.db"
+    DAILY_NEWS_EMBEDDINGS_CSV: Path = PROJECT_ROOT / "data" / "processed" / "daily_news_embeddings.csv"
+    PROCESSED_DAILY_NEWS_CSV: Path = PROJECT_ROOT / "data" / "processed" / "processed_daily_news.csv"
 
     # Database Configuration (PostgreSQL / Relational)
     DB_NAME: str = os.getenv("DB_NAME", os.getenv("db_name", "msdl-jci"))
@@ -49,14 +51,28 @@ class Settings:
     DB_HOST: str = os.getenv("DB_HOST", os.getenv("db_host", "localhost"))
     DB_PORT: str = os.getenv("DB_PORT", os.getenv("db_port", "5432"))
 
-    # Machine Learning / Modeling Hyperparameters
-    ML_LOOK_BACK: int = int(os.getenv("ML_LOOK_BACK", "3"))
+    # Machine Learning / Modeling Hyperparameters (Aligned with Thesis Table 5)
+    ML_LOOK_BACK: int = int(os.getenv("ML_LOOK_BACK", "28"))
+    ML_PREDICTION_HORIZON: int = int(os.getenv("ML_PREDICTION_HORIZON", "5"))
     ML_HIDDEN_LAYERS: tuple[int, ...] = (50, 25)
     ML_MAX_ITER: int = int(os.getenv("ML_MAX_ITER", "500"))
     ML_RANDOM_STATE: int = int(os.getenv("ML_RANDOM_STATE", "42"))
+
+    # Multi-Source Architecture Specifications (Thesis Table 5)
+    LSTM_HIDDEN_DIM: int = 64
+    LSTM_NUM_LAYERS: int = 2
+    LSTM_DROPOUT: float = 0.2
+    MACRO_INPUT_DIM: int = 3
+    MACRO_HIDDEN_DIMS: tuple[int, ...] = (32, 16)
+    MACRO_LATENT_DIM: int = 16
+    NEWS_EMB_DIM: int = 768
+    NEWS_PROJ_DIM: int = 64
+    FUSION_INPUT_DIM: int = 144  # 64 (Tech) + 16 (Macro) + 64 (News)
+    FUSION_NUM_EXPERTS: int = 3  # Dynamic weights: alpha, beta, gamma
 
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
     """Return cached application settings."""
     return Settings()
+
