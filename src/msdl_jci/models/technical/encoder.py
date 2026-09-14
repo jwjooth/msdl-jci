@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -29,11 +28,11 @@ class TechnicalDataEncoder:
 
     def __init__(self, look_back: int = 30) -> None:
         self.look_back = look_back
-        self.price_result: Optional[TrainedPriceResult] = None
+        self.price_result: TrainedPriceResult | None = None
 
     def fit_and_predict(
         self,
-        csv_path: Union[str, Path],
+        csv_path: str | Path,
         column_name: str = "Close",
     ) -> NDArray[np.float64]:
         """Train model on historical price series and return predictions."""
@@ -43,7 +42,7 @@ class TechnicalDataEncoder:
 
     def _train_price_series(
         self,
-        csv_path: Union[str, Path],
+        csv_path: str | Path,
         column_name: str = "Close",
     ) -> TrainedPriceResult:
         path_obj = Path(csv_path)

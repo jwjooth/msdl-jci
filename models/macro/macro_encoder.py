@@ -1,7 +1,6 @@
 """Macro-economic data encoder."""
 
 from dataclasses import dataclass
-from typing import Optional
 
 import numpy as np
 from numpy.typing import NDArray
@@ -25,10 +24,10 @@ class TrainedMLPResult:
 class MacroDataEncoder:
     def __init__(self, look_back: int = 3) -> None:
         self.look_back = look_back
-        self.bi_result: Optional[TrainedMLPResult] = None
-        self.inflation_result: Optional[TrainedMLPResult] = None
-        self.kurs_result: Optional[TrainedMLPResult] = None
-        self._encoded_features: Optional[NDArray[np.float64]] = None
+        self.bi_result: TrainedMLPResult | None = None
+        self.inflation_result: TrainedMLPResult | None = None
+        self.kurs_result: TrainedMLPResult | None = None
+        self._encoded_features: NDArray[np.float64] | None = None
 
     def _train_single_series(self, csv_path: str, column_name: str, remove_symbol: str = "") -> TrainedMLPResult:
         values = read_numeric_series(csv_path, column_name, remove_symbol)

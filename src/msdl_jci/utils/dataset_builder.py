@@ -8,10 +8,9 @@ Implements the exact methodology described in Sections 2.1 - 2.3 of the thesis:
 5. Zero-leakage sliding window tensor generation (Lookback=28)
 """
 
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
-import warnings
 
 import numpy as np
 import pandas as pd
@@ -57,7 +56,7 @@ class MultiSourceTensors:
     # Actual close prices at time t: [Samples]
     close_prices: np.ndarray
     # Feature column names for interpretability
-    tech_feature_cols: List[str]
+    tech_feature_cols: list[str]
 
 
 def parse_indonesian_date(series: pd.Series, day_first: bool = True) -> pd.Series:
@@ -129,8 +128,8 @@ class MultiSourceDatasetBuilder:
 
     def __init__(
         self,
-        look_back: Optional[int] = None,
-        prediction_horizon: Optional[int] = None,
+        look_back: int | None = None,
+        prediction_horizon: int | None = None,
     ) -> None:
         settings = get_settings()
         self.look_back = look_back if look_back is not None else settings.ML_LOOK_BACK
@@ -151,10 +150,10 @@ class MultiSourceDatasetBuilder:
 
     def load_raw_macro_data(
         self,
-        bi_rate_path: Union[str, Path],
-        inflation_path: Union[str, Path],
-        kurs_path: Union[str, Path],
-    ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+        bi_rate_path: str | Path,
+        inflation_path: str | Path,
+        kurs_path: str | Path,
+    ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """Load and parse raw macroeconomic data tables."""
         # 1. BI Rate
         df_bi = pd.read_csv(bi_rate_path)
@@ -197,11 +196,11 @@ class MultiSourceDatasetBuilder:
 
     def build_aligned_dataframe(
         self,
-        jci_csv: Optional[Union[str, Path]] = None,
-        bi_rate_csv: Optional[Union[str, Path]] = None,
-        inflation_csv: Optional[Union[str, Path]] = None,
-        kurs_csv: Optional[Union[str, Path]] = None,
-        news_emb_csv: Optional[Union[str, Path]] = None,
+        jci_csv: str | Path | None = None,
+        bi_rate_csv: str | Path | None = None,
+        inflation_csv: str | Path | None = None,
+        kurs_csv: str | Path | None = None,
+        news_emb_csv: str | Path | None = None,
     ) -> pd.DataFrame:
         """Merge all modalities into a synchronized master dataframe."""
         settings = get_settings()
@@ -237,10 +236,15 @@ class MultiSourceDatasetBuilder:
             direction="backward",
         )
 
-        # Forward-fill periodic policy values, backfill boundary
-        df_master["usd_idr"] = df_master["usd_idr"].ffill().bfill()
-        df_master["bi_rate"] = df_master["bi_rate"].ffill().bfill()
-        df_master["inflation_rate"] = df_master["inflation_rate"].ffill().bfill()
+        # Forward-fill periodic policy values.
+        # NOTE (leakage fix): NO backfill. bfill() would inject future macro
+        # values into the start of the dataset. Rows with genuinely
+        # unavailable macro data are dropped instead.
+        df_master["usd_idr"] = df_master["usd_idr"].ffill()
+        df_master["bi_rate"] = df_master["bi_rate"].ffill()
+        df_master["inflation_rate"] = df_master["inflation_rate"].ffill()
+        # Drop leading rows where macro data was not yet available (no look-ahead).
+        df_master = df_master.dropna(subset=["usd_idr", "bi_rate", "inflation_rate"]).reset_index(drop=True)
 
         # 3. Target Labeling for Horizon t+5 (Thesis Section 2.3)
         h = self.prediction_horizon
@@ -286,11 +290,36 @@ class MultiSourceDatasetBuilder:
     def create_multisource_tensors(
         self,
         df: pd.DataFrame,
-        feature_scaler: Optional[MinMaxScaler] = None,
-        macro_scaler: Optional[MinMaxScaler] = None,
+        feature_scaler: MinMaxScaler | None = None,
+        macro_scaler: MinMaxScaler | None = None,
         fit_scalers: bool = True,
-    ) -> Tuple[MultiSourceTensors, MinMaxScaler, MinMaxScaler]:
-        """Convert aligned dataframe into sliding window sequential and point-in-time tensors."""
+        train_end_idx: int | None = None,
+    ) -> tuple[MultiSourceTensors, MinMaxScaler, MinMaxScaler]:
+        """Convert aligned dataframe into sliding window sequential and point-in-time tensors.
+
+        Args:
+            df: Aligned master dataframe (chronological, from build_aligned_dataframe).
+            feature_scaler: Pre-fitted scaler for technical features (required if fit_scalers=False).
+            macro_scaler: Pre-fitted scaler for macro features (required if fit_scalers=False).
+            fit_scalers: If True, fit new scalers (on train prefix if train_end_idx given,
+                else on full df — legacy behaviour, NOT recommended for evaluation).
+            train_end_idx: Optional row index (in ``df`` space) delimiting the training
+                prefix. When provided with fit_scalers=True, scalers are fitted ONLY on
+                ``df.iloc[:train_end_idx]`` rows and then applied to the full frame.
+                This prevents test-period feature ranges from leaking into training.
+
+        Returns:
+            (tensors, feature_scaler, macro_scaler)
+        """
+        # --- Leakage guard: future_close must never become a feature ---
+        forbidden = {"future_close", "return_5d", "target_direction"}
+        leaked = forbidden.intersection(set(self.tech_feature_cols))
+        if leaked:
+            raise ValueError(f"tech_feature_cols must not contain target columns: {leaked}")
+        for col in ("future_close", "return_5d", "target_direction"):
+            if col in self.tech_feature_cols:
+                raise ValueError(f"Leakage: '{col}' must never be included in features")
+
         macro_cols = ["bi_rate", "inflation_rate", "usd_idr"]
         emb_cols = [c for c in df.columns if c.startswith("emb_")]
 
@@ -302,12 +331,33 @@ class MultiSourceDatasetBuilder:
         raw_dates = df["Date"].dt.strftime("%Y-%m-%d").values
         raw_close = df["Close"].values.astype(np.float32)
 
-        # Scaling
+        # Scaling — fit on TRAIN PREFIX ONLY when train_end_idx is given.
         if fit_scalers:
             feature_scaler = MinMaxScaler(feature_range=(0, 1))
             macro_scaler = MinMaxScaler(feature_range=(0, 1))
-            scaled_tech = feature_scaler.fit_transform(raw_tech)
-            scaled_macro = macro_scaler.fit_transform(raw_macro)
+            if train_end_idx is not None:
+                if not (0 < train_end_idx <= len(df)):
+                    raise ValueError(
+                        f"train_end_idx={train_end_idx} out of range for df len={len(df)}"
+                    )
+                # Fit strictly on rows that precede the validation/test boundary.
+                feature_scaler.fit(raw_tech[:train_end_idx])
+                macro_scaler.fit(raw_macro[:train_end_idx])
+                logger.info(
+                    "Fitted scalers on train prefix [: %d] / %d rows (leak-free)",
+                    train_end_idx,
+                    len(df),
+                )
+            else:
+                logger.warning(
+                    "Fitting scalers on FULL dataframe (%d rows) — leaks test ranges. "
+                    "Pass train_end_idx for leak-free evaluation.",
+                    len(df),
+                )
+                feature_scaler.fit(raw_tech)
+                macro_scaler.fit(raw_macro)
+            scaled_tech = feature_scaler.transform(raw_tech)
+            scaled_macro = macro_scaler.transform(raw_macro)
         else:
             if feature_scaler is None or macro_scaler is None:
                 raise ValueError("Must provide fitted scalers when fit_scalers=False")

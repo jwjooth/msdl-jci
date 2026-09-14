@@ -1,0 +1,40 @@
+============================= test session starts ==============================
+platform linux -- Python 3.14.4, pytest-9.1.1, pluggy-1.6.0 -- /usr/bin/python3
+cachedir: .pytest_cache
+rootdir: /mnt/c/Users/jorda/Documents/kuliah hohohoho/semester 7/project/MSDL-JCI
+configfile: pyproject.toml
+plugins: typeguard-4.4.4
+collecting ... collected 30 items
+
+tests/integration/test_pipeline.py::test_main_pipeline_execution PASSED  [  3%]
+tests/unit/test_config.py::test_settings_singleton PASSED                [  6%]
+tests/unit/test_config.py::test_settings_paths_exist PASSED              [ 10%]
+tests/unit/test_config.py::test_settings_hyperparameters PASSED          [ 13%]
+tests/unit/test_data_loader.py::test_read_numeric_series_success PASSED  [ 16%]
+tests/unit/test_data_loader.py::test_read_numeric_series_missing_column PASSED [ 20%]
+tests/unit/test_data_loader.py::test_read_numeric_series_missing_file PASSED [ 23%]
+tests/unit/test_dataset_builder.py::test_parse_indonesian_date PASSED    [ 26%]
+tests/unit/test_dataset_builder.py::test_calculate_technical_indicators PASSED [ 30%]
+tests/unit/test_dataset_builder.py::test_dataset_builder_tensors PASSED  [ 33%]
+tests/unit/test_fusion.py::test_technical_lstm_branch PASSED             [ 36%]
+tests/unit/test_fusion.py::test_macro_mlp_branch PASSED                  [ 40%]
+tests/unit/test_fusion.py::test_news_projection_branch PASSED            [ 43%]
+tests/unit/test_fusion.py::test_soft_gating_network_weights_sum_to_one PASSED [ 46%]
+tests/unit/test_fusion.py::test_adaptive_soft_gating_fusion_forward_backward PASSED [ 50%]
+tests/unit/test_fusion.py::test_ablation_baseline_models PASSED          [ 53%]
+tests/unit/test_macro_encoder.py::test_macro_encoder_fit_and_encode PASSED [ 56%]
+tests/unit/test_macro_encoder.py::test_macro_pipeline_default_run PASSED [ 60%]
+tests/unit/test_no_lookahead.py::test_scaler_fitted_on_train_only PASSED [ 63%]
+tests/unit/test_no_lookahead.py::test_macro_no_backfill_boundary PASSED  [ 66%]
+tests/unit/test_no_lookahead.py::test_walk_forward_embargo_no_overlap PASSED [ 70%]
+tests/unit/test_no_lookahead.py::test_pos_weight_uses_train_only PASSED  [ 73%]
+tests/unit/test_no_lookahead.py::test_news_date_no_future_leak PASSED    [ 76%]
+tests/unit/test_target_alignment.py::test_target_uses_future_close_only PASSED [ 80%]
+tests/unit/test_target_alignment.py::test_windowing_preserves_chronology_and_alignment PASSED [ 83%]
+tests/unit/test_target_alignment.py::test_future_close_never_in_features PASSED [ 86%]
+tests/unit/test_technical_encoder.py::test_technical_encoder_fit_and_predict PASSED [ 90%]
+tests/unit/test_technical_encoder.py::test_technical_pipeline_default_run PASSED [ 93%]
+tests/unit/test_trading_simulation.py::test_compute_classification_metrics PASSED [ 96%]
+tests/unit/test_trading_simulation.py::test_simulate_trading_strategy PASSED [100%]
+
+============================= 30 passed in 10.15s ==============================

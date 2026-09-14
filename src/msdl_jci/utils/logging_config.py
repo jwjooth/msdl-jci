@@ -2,13 +2,12 @@
 
 import logging
 import sys
-from typing import Union
 
 _LOG_FMT = "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s"
 _DATE_FMT = "%Y-%m-%d %H:%M:%S"
 
 
-def configure_logging(level: Union[int, str] = logging.INFO) -> None:
+def configure_logging(level: int | str = logging.INFO) -> None:
     """Configure root logger with formatted stream handler."""
     root = logging.getLogger()
     if isinstance(level, str):

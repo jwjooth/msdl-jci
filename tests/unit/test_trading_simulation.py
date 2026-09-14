@@ -1,7 +1,7 @@
 """Unit tests for trading simulation and metrics."""
 
 import numpy as np
-import pytest
+
 from msdl_jci.evaluation.metrics import compute_classification_metrics
 from msdl_jci.evaluation.trading_simulation import simulate_trading_strategy
 
@@ -21,7 +21,6 @@ def test_compute_classification_metrics():
 
 
 def test_simulate_trading_strategy():
-    n = 20
     # Alternating returns
     returns = np.array([0.02, -0.01, 0.03, -0.02] * 5)
     # Perfect model signals

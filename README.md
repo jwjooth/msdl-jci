@@ -1,155 +1,143 @@
-# MSDL-JCI (Multi-Source Deep Learning for Jakarta Composite Index)
+# MSDL-JCI — Multi-Source Deep Learning for JCI Direction Prediction
 
-Kerangka kerja modular Python berstandar industri (*src-layout*) untuk ekstraksi representasi multi-sumber, feature engineering data makroekonomi, teknikal pasar modal, dan sentimen/embedding berita finansial guna analisis IHSG (Jakarta Composite Index).
+Predicting Indonesia Composite Index (t+5) direction from technical, macroeconomic, and news modalities — closed as a rigorous, leak-free **negative result**.
 
----
+```text
+Research Status: Closed.
+Proposed Adaptive Soft Gating: Not viable.
+Best research baseline: LSTM + Macro.
+Strongest simple heuristic: Momentum-5d.
+Deployment Status: Research/thesis defense only. Not for live trading.
+```
 
-## 🏛️ Arsitektur Direktori Standar Industri
+## Executive summary
 
-Struktur proyek dirancang bersih dan modular mengikuti best practice Python packaging modern (PEP 518, PEP 621, and `src-layout`):
+- **Built:** leak-free multimodal pipeline (point-in-time alignment, train-only
+  scaling, embargoed walk-forward, validation-only thresholds, cost-aware trading sim).
+- **Tested:** 5 neural models + 9 statistical/ML baselines, 2 folds × 3 seeds,
+  Wilcoxon/t-test + bootstrap statistics. 40/40 tests pass.
+- **Failed:** the proposed Adaptive Soft Gating model collapsed (near-constant
+  probabilities, MCC ≈ 0); branch probes showed AUC ≈ 0.50 per modality; gating
+  fixes balanced weights but not signal.
+- **Learned:** the bottleneck is data signal (stale macro, sparse news, weak
+  technical edge at t+5), not engineering.
+- **Useful:** evaluation methodology, diagnostic suite, and honest negative
+  evidence. LSTM + Macro retained as research baseline only; nothing is deployable.
+
+## Key results
+
+| Item | Finding | Evidence |
+|---|---:|---|
+| Tests | 40/40 pass | pytest |
+| Proposed model | Not viable | MCC near zero, probability collapse |
+| Branch-only AUC | ~0.50 | branch probes |
+| Gating fixes | Stabilized weights but not signal | entropy improved, MCC unchanged |
+| LSTM + Macro | Research baseline only | mean AUC ~0.588, not significant |
+| Momentum-5d | Strongest heuristic | net ~28.07, Sharpe ~1.31, exposure ~55% |
+
+Statistical significance is **not** claimed where tests were null (all p > 0.05).
+
+## Architecture
+
+```mermaid
+flowchart TD
+  A[Raw Technical Data] --> B[Technical Features]
+  C[Raw Macro Data] --> D[Point-in-Time Macro Features]
+  E[News Embeddings] --> F[News Alignment Features]
+  B --> G[Windowed Tensors]
+  D --> G
+  F --> G
+  G --> H[Walk-Forward Split + Embargo]
+  H --> I[Train-Only Scaling]
+  I --> J[Model Training]
+  J --> K[Validation Threshold Optimization]
+  K --> L[Test Evaluation]
+  L --> M[Classification Metrics]
+  L --> N[Trading Simulation with Costs]
+  M --> O[Reports]
+  N --> O
+```
+
+Module map: `docs/02_architecture.md`.
+
+## Repository structure
 
 ```text
 MSDL-JCI/
-├── .env.example                # Template konfigurasi environment variable
-├── .gitignore                  # Aturan ignore git standar (venv, pycache, tests, db)
-├── pyproject.toml              # Definisi project metadata, dependencies, dan entrypoint
-├── README.md                   # Dokumentasi arsitektur dan panduan operasional
-├── uv.lock                     # Lockfile resolusi dependency dari uv
-│
-├── data/                       # Data storage (terpisah dari logic kode)
-│   ├── database/               # Database SQLite / Relational lokal
-│   │   └── berita_ihsg_enterprise.db
-│   ├── processed/              # Data hasil transformasi / feature embeddings
-│   │   ├── daily_news_embeddings.csv
-│   │   └── processed_daily_news.csv
-│   └── raw/                    # Raw historical dataset
-│       ├── macro/              # Data makroekonomi (BI-rate, inflasi, kurs USD/IDR)
-│       │   ├── bi_rate.csv
-│       │   ├── inflation_data.csv
-│       │   └── kurs_usdidr.csv
-│       └── technical/          # Data teknikal IHSG (OHLCV)
-│           └── jci_historical.csv
-│
-├── src/
-│   └── msdl_jci/               # Package utama MSDL-JCI
-│       ├── __init__.py         # Package root exports
-│       ├── main.py             # CLI Entrypoint aplikasi
-│       │
-│       ├── config/             # Manajemen Konfigurasi Terpusat
-│       │   ├── __init__.py
-│       │   └── settings.py     # Settings class, dynamic path resolution, env loader
-│       │
-│       ├── utils/              # Helper Umum & Reusable Modules
-│       │   ├── __init__.py
-│       │   ├── data_loader.py  # Loader CSV & numeric series parser yang aman
-│       │   └── logging_config.py # Standardized stream logger
-│       │
-│       ├── models/             # Modul Ekstraksi Representasi & Pipeline
-│       │   ├── __init__.py
-│       │   ├── macro/          # Macroeconomic MLP Encoder & Pipeline
-│       │   │   ├── __init__.py
-│       │   │   ├── encoder.py
-│       │   │   └── pipeline.py
-│       │   ├── technical/      # Technical Price MLP Encoder & Pipeline
-│       │   │   ├── __init__.py
-│       │   │   ├── encoder.py
-│       │   │   └── pipeline.py
-│       │   └── news/           # Financial News Representation Model & Pipeline
-│       │       ├── __init__.py
-│       │       ├── encoder.py
-│       │       └── pipeline.py
-│       │
-│       ├── preprocessing/      # Data cleansing & alignment pipeline
-│       │   ├── __init__.py
-│       │   ├── extract_embeddings.py
-│       │   ├── train_indobert_news.py
-│       │   ├── train_lstm_jci.py
-│       │   └── train_mlp_macro.py
-│       │
-│       └── scraping/           # News scraper crawlers
-│           ├── __init__.py
-│           ├── scraping_cnbc_indonesia_news.py
-│           ├── scraping_detik_news.py
-│           └── scraping_kontan_news.py
-│
-└── tests/                      # Automated Testing Suite (Pytest)
-    ├── __init__.py
-    ├── integration/            # Pengujian integrasi end-to-end
-    │   ├── __init__.py
-    │   └── test_pipeline.py
-    └── unit/                   # Pengujian unit per komponen
-        ├── __init__.py
-        ├── test_config.py
-        ├── test_data_loader.py
-        ├── test_macro_encoder.py
-        └── test_technical_encoder.py
+├─ .github/workflows/ci.yml
+├─ configs/            # frozen thesis settings + experiment overrides
+├─ data/               # raw/ processed/ sample/ schemas/ (raw data git-ignored)
+├─ docs/               # 01–11 + models/ (defense documentation)
+├─ notebooks/analysis/ # (reserved; analysis lives in scripts/ + reports/)
+├─ reports/            # phase_00 … phase_11 + final_recommendation.md (evidence)
+├─ scripts/            # diagnostics & audit runners
+├─ src/msdl_jci/       # package (config, utils, models, evaluation, trading, experiments)
+├─ tests/              # unit/ integration/ (+ smoke)
+├─ artifacts/          # large outputs (not committed)
+├─ Makefile Dockerfile pyproject.toml uv.lock requirements.txt
 ```
 
----
+Legacy top-level `config/`, `development/`, `models/`, `utils/` predate
+standardization and are superseded by `configs/` + `src/msdl_jci/`; kept for
+reference, not used by the pipeline.
 
-## ⚙️ Konfigurasi Sistem Terpusat (`src/msdl_jci/config/settings.py`)
+## Quickstart
 
-Aplikasi menggunakan `Settings` berbasis dataclass dengan caching (`lru_cache`) yang otomatis:
-- Mendeteksi `PROJECT_ROOT` tanpa hardcoding relative path manual.
-- Mengarahkan path dataset default ke folder `data/raw/macro/`, `data/raw/technical/`, dan `data/processed/`.
-- Membaca konfigurasi dari file `.env` jika tersedia.
-
-Untuk kustomisasi konfigurasi:
-1. Salin `.env.example` ke `.env`:
-   ```powershell
-   Copy-Item .env.example .env
-   ```
-2. Sesuaikan variabel seperti `ML_LOOK_BACK`, `LOG_LEVEL`, atau kredensial database jika menggunakan PostgreSQL.
-
----
-
-## 🚀 Panduan Instalasi & Eksekusi
-
-### 1. Prasyarat
-- Python `>= 3.12`
-- Paket manajer modern: [`uv`](https://github.com/astral-sh/uv)
-
-### 2. Instalasi Dependencies
-```powershell
+```bash
 uv sync
-```
-
-### 3. Menjalankan Pipeline Utama
-
-Anda dapat menjalankan pipeline melalui command line script atau Python module runner:
-
-**Opsi A (CLI Console Script):**
-```powershell
-uv run msdl-jci
-```
-
-**Opsi B (Python Module):**
-```powershell
-uv run python -m msdl_jci.main
-```
-
----
-
-## 🧪 Pengujian Otomatis (Testing)
-
-Proyek ini telah dilengkapi dengan unit test dan integration test untuk menjamin keandalan fungsionalitas modul dan koneksi pipeline data.
-
-Jalankan test suite dengan:
-```powershell
 uv run pytest -v
+uv run msdl-jci --mode proposed --epochs 40
+uv run python -m msdl_jci.experiments.run_ablation
 ```
 
-Untuk melihat cakupan kode (coverage report):
-```powershell
-uv run pytest --cov=msdl_jci
+Fallback (no uv):
+
+```bash
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+pip install -e ".[dev]"
+pytest -v
+python -m msdl_jci.main --mode proposed --epochs 40
+python -m msdl_jci.experiments.run_ablation
 ```
 
----
+See `make` targets (`install lint format type test smoke run-proposed run-ablation clean`).
 
-## 🛠️ Modul & Komponen Kunci
+### Environment notes
+- Some audit runs used `PYTHONPATH=src python3 ...` because `uv` was unavailable
+  in a Linux shell over a Windows-built `.venv` — same code, same seed (42).
+- Recreate `.venv` locally; the committed one (if present) is not portable.
 
-- **`msdl_jci.config.settings`**: Sumber kebenaran tunggal (*single source of truth*) untuk direktori proyek, path file dataset, dan parameter machine learning.
-- **`msdl_jci.utils.data_loader`**: Fungsi utilitas untuk membaca, memvalidasi kolom, dan membersihkan format numerik dataset time-series.
-- **`msdl_jci.models.macro`**: Menghandle pelatihan regresi non-linear dan pembentukan embedding gabungan dari BI-7Day-RR, inflasi, dan kurs USD/IDR.
-- **`msdl_jci.models.technical`**: Mengonstruksi regresi sekuensial pada harga penutupan IHSG historis.
-- **`msdl_jci.models.news`**: Menyediakan arsitektur pipeline untuk pemodelan embedding berita finansial hasil ekstraksi IndoBERT.
+## Data requirements
+
+```text
+data/raw/technical/jci_historical.csv
+data/raw/macro/bi_rate.csv
+data/raw/macro/inflation_data.csv
+data/raw/macro/kurs_usdidr.csv
+data/processed/daily_news_embeddings.csv
+```
+
+Schemas, formats, missing-data rules, and point-in-time assumptions:
+`data/schemas/columns.md`, `docs/03_data_pipeline.md`. CI uses
+`data/sample/aligned_sample.csv` (raw data is git-ignored).
+
+## Experiment reports
+
+`docs/07_reports_index.md` maps all phases:
+phase_00_baseline · phase_01_collapse · phase_02_branch_diagnosis ·
+phase_03_gating · phase_04_macro · phase_05_news · phase_06_training_dynamics ·
+phase_07_objective_threshold · phase_08_baselines · phase_09_robust_validation ·
+phase_10_trading · phase_11_experiments · `reports/final_recommendation.md`.
+
+## Limitations and risks
+
+Not investment advice; not live-trading ready; historical simulation only.
+Cost assumptions may change results; macro release-date and news-timing
+assumptions are imperfect; small, non-stationary sample. Full list:
+`docs/09_limitations_and_risks.md`.
+
+## License and citation
+
+MIT — see `LICENSE`. Cite via `CITATION.cff`. Thesis narrative:
+`docs/10_thesis_defense.md`.

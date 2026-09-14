@@ -1,7 +1,7 @@
 """Macro-economic pipeline orchestration."""
 
 from pathlib import Path
-from typing import Optional, Union
+
 import numpy as np
 from numpy.typing import NDArray
 
@@ -12,15 +12,15 @@ from msdl_jci.models.macro.encoder import MacroDataEncoder
 class MacroPipeline:
     """Orchestration pipeline for macro economic data encoding."""
 
-    def __init__(self, look_back: Optional[int] = None) -> None:
+    def __init__(self, look_back: int | None = None) -> None:
         self.encoder = MacroDataEncoder(look_back=look_back)
 
     def build_macro_embeddings(
         self,
-        bi_rate_csv: Optional[Union[str, Path]] = None,
-        inflation_csv: Optional[Union[str, Path]] = None,
-        kurs_csv: Optional[Union[str, Path]] = None,
-    ) -> NDArray[np.float64]:
+        bi_rate_csv: str | Path | None = None,
+        inflation_csv: str | Path | None = None,
+        kurs_csv: str | Path | None = None,
+    ) -> NDArray[np.float64] | None:
         """Train models and generate combined macro feature embeddings.
 
         Falls back to configured default paths in Settings if not explicitly provided.

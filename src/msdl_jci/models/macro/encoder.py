@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Union, Any
+from typing import Any
 
 import numpy as np
 from numpy import dtype, float64, ndarray
@@ -25,17 +25,17 @@ class TrainedMLPResult:
 
 
 class MacroDataEncoder:
-    def __init__(self, look_back: Optional[int] = None) -> None:
+    def __init__(self, look_back: int | None = None) -> None:
         settings = get_settings()
         self.look_back = look_back if look_back is not None else settings.ML_LOOK_BACK
-        self.bi_result: Optional[TrainedMLPResult] = None
-        self.inflation_result: Optional[TrainedMLPResult] = None
-        self.kurs_result: Optional[TrainedMLPResult] = None
-        self._encoded_features: Optional[NDArray[np.float64]] = None
+        self.bi_result: TrainedMLPResult | None = None
+        self.inflation_result: TrainedMLPResult | None = None
+        self.kurs_result: TrainedMLPResult | None = None
+        self._encoded_features: NDArray[np.float64] | None = None
 
     def _train_single_series(
         self,
-        csv_path: Union[str, Path],
+        csv_path: str | Path,
         column_name: str,
         remove_symbol: str = "",
     ) -> TrainedMLPResult:
@@ -69,9 +69,9 @@ class MacroDataEncoder:
 
     def fit_and_encode(
         self,
-        bi_rate_csv: Union[str, Path],
-        inflation_csv: Union[str, Path],
-        kurs_csv: Union[str, Path],
+        bi_rate_csv: str | Path,
+        inflation_csv: str | Path,
+        kurs_csv: str | Path,
     ) -> ndarray[tuple[Any, ...], dtype[float64]] | None:
         logger.info("Training BI Rate model from %s...", bi_rate_csv)
         self.bi_result = self._train_single_series(bi_rate_csv, "BI-7Day-RR", "%")

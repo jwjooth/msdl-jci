@@ -11,7 +11,6 @@ from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 from urllib.parse import urljoin
 
 import requests
@@ -43,7 +42,7 @@ class DetikFinanceParallelScraper:
         self.retry_delay = 1
         self.request_timeout = 15
 
-    def _retry_request(self, url: str, params: dict = None) -> Optional[requests.Response]:
+    def _retry_request(self, url: str, params: dict = None) -> requests.Response | None:
         """Retry logic."""
         for attempt in range(self.max_retries):
             try:
@@ -87,7 +86,7 @@ class DetikFinanceParallelScraper:
             haystack = " ".join(class_name).lower()
         return any(keyword in haystack for keyword in keywords)
 
-    def _parse_article_from_node(self, node) -> Optional[Dict]:
+    def _parse_article_from_node(self, node) -> dict | None:
         link = node if getattr(node, "name", None) == "a" else node.find("a", href=True)
         if not link:
             return None
@@ -140,11 +139,11 @@ class DetikFinanceParallelScraper:
             "scraped_at": datetime.now().isoformat(),
         }
 
-    def scrape_page(self, page_num: int) -> Tuple[int, List[Dict]]:
+    def scrape_page(self, page_num: int) -> tuple[int, list[dict]]:
         """Scrape single page - returns (page_num, articles)."""
         cache_file = self.cache_dir / f"page_{page_num:04d}.json"
         if cache_file.exists():
-            with open(cache_file, "r", encoding="utf-8") as f:
+            with open(cache_file, encoding="utf-8") as f:
                 return page_num, json.load(f)
 
         params = self.params.copy()
@@ -155,7 +154,7 @@ class DetikFinanceParallelScraper:
             return page_num, []
 
         soup = BeautifulSoup(response.content, "html.parser")
-        articles: List[Dict] = []
+        articles: list[dict] = []
         seen_urls = set()
 
         # Search page markup changes occasionally, so scan all anchors and dedupe by URL.
@@ -176,7 +175,7 @@ class DetikFinanceParallelScraper:
 
         return page_num, articles
 
-    def scrape_all_parallel(self, total_pages: int = 588, max_pages: Optional[int] = None):
+    def scrape_all_parallel(self, total_pages: int = 588, max_pages: int | None = None):
         """Scrape all pages in parallel."""
         if max_pages:
             total_pages = min(total_pages, max_pages)
@@ -190,8 +189,8 @@ class DetikFinanceParallelScraper:
         print(f"   - Estimated time: {total_pages / self.workers / 2:.1f} seconds")
         print(f"{'=' * 70}\n")
 
-        all_articles: List[Dict] = []
-        failed_pages: List[int] = []
+        all_articles: list[dict] = []
+        failed_pages: list[int] = []
         success_count = 0
 
         start_time = time.time()
@@ -240,7 +239,7 @@ class DetikFinanceParallelScraper:
 
         return all_articles, failed_pages
 
-    def export_json(self, articles: List[Dict], filename: str = "detik_ihsg_articles.json"):
+    def export_json(self, articles: list[dict], filename: str = "detik_ihsg_articles.json"):
         """Export to JSON."""
         output_file = self.cache_dir / filename
         with open(output_file, "w", encoding="utf-8") as f:
@@ -248,7 +247,7 @@ class DetikFinanceParallelScraper:
         print(f"OK JSON exported: {output_file} ({len(articles)} articles)")
         return output_file
 
-    def export_csv(self, articles: List[Dict], filename: str = "detik_ihsg_articles.csv"):
+    def export_csv(self, articles: list[dict], filename: str = "detik_ihsg_articles.csv"):
         """Export to CSV."""
         if not articles:
             print("Warning: no articles to export")
@@ -263,12 +262,12 @@ class DetikFinanceParallelScraper:
         print(f"OK CSV exported: {output_file} ({len(articles)} articles)")
         return output_file
 
-    def export_stats(self, articles: List[Dict], failed_pages: List[int]):
+    def export_stats(self, articles: list[dict], failed_pages: list[int]):
         """Export detailed statistics."""
         output_file = self.cache_dir / "statistics.json"
 
         years_count = defaultdict(int)
-        for article in articles:
+        for _article in articles:
             years_count["total"] += 1
 
         stats = {
@@ -289,7 +288,7 @@ class DetikFinanceParallelScraper:
         print(f"OK Statistics saved: {output_file}")
         return output_file
 
-    def export_sample(self, articles: List[Dict], sample_size: int = 10):
+    def export_sample(self, articles: list[dict], sample_size: int = 10):
         """Export sample articles for review."""
         output_file = self.cache_dir / "sample_articles.json"
 

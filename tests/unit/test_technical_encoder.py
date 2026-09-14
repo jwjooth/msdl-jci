@@ -1,7 +1,7 @@
 """Unit tests for technical encoder and pipeline."""
 
-import pytest
 import numpy as np
+
 from msdl_jci.config.settings import get_settings
 from msdl_jci.models.technical.encoder import TechnicalDataEncoder
 from msdl_jci.models.technical.pipeline import TechnicalPipeline

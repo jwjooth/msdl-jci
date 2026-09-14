@@ -1,7 +1,7 @@
 """Unit tests for Multi-Source Deep Learning architectures and Soft Gating."""
 
-import pytest
 import torch
+
 from msdl_jci.models.fusion import (
     AdaptiveSoftGatingFusionModel,
     LSTMMacroModel,

@@ -1,14 +1,14 @@
 """CSV and data loading helpers."""
 
 from pathlib import Path
-from typing import Union
+
 import numpy as np
-from numpy.typing import NDArray
 import pandas as pd
+from numpy.typing import NDArray
 
 
 def read_numeric_series(
-    csv_path: Union[str, Path],
+    csv_path: str | Path,
     column_name: str,
     remove_symbol: str = "",
 ) -> NDArray[np.float64]:

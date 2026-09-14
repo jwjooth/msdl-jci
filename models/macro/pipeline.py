@@ -1,7 +1,7 @@
 """Application pipeline orchestration."""
 
-from numpy.typing import NDArray
 import numpy as np
+from numpy.typing import NDArray
 
 from models.macro.macro_encoder import MacroDataEncoder
 

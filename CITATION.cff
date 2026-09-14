@@ -1,0 +1,14 @@
+cff-version: 1.2.0
+message: "If you use MSDL-JCI in academic work, please cite it as below."
+title: "MSDL-JCI: Multi-Source Deep Learning for JCI Direction Prediction (a rigorous negative result)"
+version: 0.1.0
+authors:
+  - name: "Jordan Ferdinand"
+license: MIT
+repository-code: "https://github.com/jordan-ferdinand_IMSI/MSDL-JCI"
+keywords:
+  - stock-prediction
+  - multimodal-learning
+  - walk-forward-validation
+  - model-collapse
+  - negative-result

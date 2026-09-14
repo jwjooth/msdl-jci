@@ -40,8 +40,35 @@ ENV/
 .pytest_cache/
 .coverage
 htmlcov/
+.mypy_cache/
+.ruff_cache/
+coverage.xml
 
 # Environment Variables & Secrets
 .env
 .env.local
 .env.*.local
+
+# Data (tracked: sample + schemas only)
+data/raw/*
+data/processed/*
+data/external/*
+!data/sample/
+!data/schemas/
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/external/.gitkeep
+
+# Research artifacts (reports/ ARE committed; large binaries are not)
+artifacts/*
+!artifacts/README.md
+*.ckpt
+*.pt
+*.pth
+*.bin
+models/*.pt
+models/*.pth
+
+# Logs & notebooks
+*.log
+.ipynb_checkpoints/

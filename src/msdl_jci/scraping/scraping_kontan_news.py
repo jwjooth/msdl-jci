@@ -1,20 +1,16 @@
 import csv
 import json
 import re
-import string
-import time
-from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional, Tuple
 from urllib.parse import urljoin
 
 import requests
 from bs4 import BeautifulSoup
+from playwright.sync_api import sync_playwright
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-from playwright.sync_api import sync_playwright
 
 
 class KontanInvestasiParallelScraper:
@@ -95,7 +91,7 @@ class KontanInvestasiParallelScraper:
         url = self._normalize_url(link.get("href", ""))
         return self._is_finance_article_url(url)
 
-    def _extract_search_item(self, node) -> Optional[dict]:
+    def _extract_search_item(self, node) -> dict | None:
         link = node.find("a", href=True)
         if not link:
             return None
@@ -189,7 +185,7 @@ class KontanInvestasiParallelScraper:
         query = "&".join(f"{k}={requests.utils.quote(str(v))}" for k, v in params.items())
         return f"{self.base_url}?{query}"
 
-    def _fetch_page_html(self, page_num: int) -> tuple[Optional[str], Optional[str]]:
+    def _fetch_page_html(self, page_num: int) -> tuple[str | None, str | None]:
         if not self.use_playwright:
             try:
                 response = self.session.get(
@@ -243,7 +239,7 @@ class KontanInvestasiParallelScraper:
             except Exception as request_error:
                 return None, f"Playwright failed: {playwright_error} | Requests failed: {request_error}"
 
-    def _parse_article_from_node(self, node) -> Optional[dict]:
+    def _parse_article_from_node(self, node) -> dict | None:
         link = node if getattr(node, "name", None) == "a" else node.find("a", href=True)
         if not link:
             return None
@@ -318,10 +314,10 @@ class KontanInvestasiParallelScraper:
             "scraped_at": datetime.now().isoformat(),
         }
 
-    def scrape_page(self, page_num: int) -> Tuple[int, List[dict]]:
+    def scrape_page(self, page_num: int) -> tuple[int, list[dict]]:
         cache_file = self.cache_dir / f"page_{page_num:04d}.json"
         if cache_file.exists():
-            with open(cache_file, "r", encoding="utf-8") as f:
+            with open(cache_file, encoding="utf-8") as f:
                 return page_num, json.load(f)
 
         html, error = self._fetch_page_html(page_num)
@@ -330,7 +326,7 @@ class KontanInvestasiParallelScraper:
             return page_num, []
 
         soup = BeautifulSoup(html, "html.parser")
-        articles: List[dict] = []
+        articles: list[dict] = []
         seen_urls = set()
 
         search_items = soup.select("li")
@@ -377,7 +373,7 @@ class KontanInvestasiParallelScraper:
 
         return page_num, articles
 
-    def scrape_all_parallel(self, total_pages: int = 24, max_pages: Optional[int] = None):
+    def scrape_all_parallel(self, total_pages: int = 24, max_pages: int | None = None):
         if max_pages:
             total_pages = min(total_pages, max_pages)
 
@@ -385,10 +381,9 @@ class KontanInvestasiParallelScraper:
         print("Kontan Investasi Parallel Scraper (IHSG)")
         print(f"{'=' * 70}\n")
 
-        all_articles: List[dict] = []
-        failed_pages: List[int] = []
+        all_articles: list[dict] = []
+        failed_pages: list[int] = []
         success_count = 0
-        start_time = time.time()
 
         with ThreadPoolExecutor(max_workers=self.workers) as executor:
             futures = {
@@ -407,8 +402,6 @@ class KontanInvestasiParallelScraper:
                         failed_pages.append(page_num)
                         status = "FAIL"
 
-                    elapsed = time.time() - start_time
-                    rate = i / elapsed if elapsed > 0 else 0
                     print(
                         f"{status} Page {page_num:>4} | Progress {i}/{total_pages} | Articles found so far: {len(all_articles)}",
                         end="\r",
@@ -421,14 +414,14 @@ class KontanInvestasiParallelScraper:
             print(f"Failed pages: {failed_pages[:20]}")
         return all_articles, failed_pages
 
-    def export_json(self, articles: List[dict], filename: str = "kontan_investasi_ihsg_articles.json"):
+    def export_json(self, articles: list[dict], filename: str = "kontan_investasi_ihsg_articles.json"):
         output_file = self.cache_dir / filename
         with open(output_file, "w", encoding="utf-8") as f:
             json.dump(articles, f, ensure_ascii=False, indent=2)
         print(f"OK JSON exported: {output_file}")
         return output_file
 
-    def export_csv(self, articles: List[dict], filename: str = "kontan_investasi_ihsg_articles.csv"):
+    def export_csv(self, articles: list[dict], filename: str = "kontan_investasi_ihsg_articles.csv"):
         if not articles:
             print("Warning: no articles to export")
             return None

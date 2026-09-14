@@ -1,7 +1,7 @@
 """Unit tests for macro data encoder and pipeline."""
 
-import pytest
 import numpy as np
+
 from msdl_jci.config.settings import get_settings
 from msdl_jci.models.macro.encoder import MacroDataEncoder
 from msdl_jci.models.macro.pipeline import MacroPipeline

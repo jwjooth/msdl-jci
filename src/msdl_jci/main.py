@@ -2,7 +2,6 @@
 
 import argparse
 import sys
-from typing import List, Optional
 
 from msdl_jci.config.settings import get_settings
 from msdl_jci.evaluation.walk_forward import evaluate_model_walk_forward
@@ -16,22 +15,38 @@ from msdl_jci.utils.logging_config import configure_logging, get_logger
 logger = get_logger("msdl_jci.main")
 
 
-def run_proposed_deep_learning_pipeline(epochs: int = 40) -> int:
+def run_proposed_deep_learning_pipeline(epochs: int = 40, seed: int = 42) -> int:
     """Train and evaluate the proposed Adaptive Soft Gating Multi-Source Model."""
+    import numpy as np
+
+    from msdl_jci.evaluation.walk_forward import set_all_seeds
+
+    set_all_seeds(seed)
     logger.info("=" * 60)
     logger.info("EXECUTING PROPOSED ADAPTIVE SOFT GATING FUSION PIPELINE")
     logger.info("=" * 60)
 
     builder = MultiSourceDatasetBuilder()
     df_aligned = builder.build_aligned_dataframe()
-    tensors, _, _ = builder.create_multisource_tensors(df_aligned)
+    # Leak-free: fit scalers on the train prefix only (70% of windowed samples).
+    lb = builder.look_back
+    n_win = len(df_aligned) - lb + 1
+    train_end_win = int(n_win * 0.70)
+    train_end_df = train_end_win + lb - 1
+    tensors, _, _ = builder.create_multisource_tensors(df_aligned, train_end_idx=train_end_df)
+
+    # Calibrated classifier bias from train base rate (anti-collapse).
+    pos_rate = float(np.mean(tensors.y[:train_end_win]))
 
     logger.info("Training proposed model on %d chronological samples...", len(tensors.y))
     result = evaluate_model_walk_forward(
-        model_fn=lambda: AdaptiveSoftGatingFusionModel(),
+        model_fn=lambda: AdaptiveSoftGatingFusionModel(
+            pos_rate=pos_rate, modality_dropout=0.05
+        ),
         model_name="Proposed Model (Adaptive Soft Gating)",
         tensors=tensors,
         epochs=epochs,
+        seed=seed,
     )
 
     clf_dict = result.classification_metrics.to_dict()
@@ -62,6 +77,7 @@ def run_legacy_pipelines() -> int:
     logger.info("--- Executing Legacy Macro Pipeline ---")
     macro_pipeline = MacroPipeline(look_back=settings.ML_LOOK_BACK)
     macro_features = macro_pipeline.build_macro_embeddings()
+    assert macro_features is not None, "Macro pipeline produced no features"
     logger.info("Macro embedding shape: %s", macro_features.shape)
 
     logger.info("--- Executing Legacy Technical Pipeline ---")
@@ -71,7 +87,7 @@ def run_legacy_pipelines() -> int:
     return 0
 
 
-def main(argv: Optional[List[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     """Main application CLI entrypoint."""
     if argv is None:
         if any("pytest" in arg for arg in sys.argv):

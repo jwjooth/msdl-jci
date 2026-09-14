@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -29,11 +28,11 @@ class NewsDataEncoder:
 
     def __init__(self, look_back: int = 30) -> None:
         self.look_back = look_back
-        self.news_result: Optional[TrainedNewsResult] = None
+        self.news_result: TrainedNewsResult | None = None
 
     def fit_and_predict(
         self,
-        csv_path: Union[str, Path],
+        csv_path: str | Path,
         feature_column: str = "mean_embedding",
     ) -> NDArray[np.float64]:
         """Fit model on news feature representation and predict sequence."""
