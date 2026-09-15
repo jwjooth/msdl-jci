@@ -65,3 +65,4 @@ exclude = ["\\.venv/", "notebooks/", "reports/", "tests/", "src/msdl_jci/scrapin
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+filterwarnings = ["ignore::UserWarning"]
