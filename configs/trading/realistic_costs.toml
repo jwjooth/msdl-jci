@@ -1,4 +1,0 @@
-[trading]
-stride = 5
-fee_per_side = 0.0015
-slippage_per_side = 0.0005

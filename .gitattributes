@@ -1,8 +1,0 @@
-# Git attributes: keep research reports diffable, large binaries in LFS if added.
-*.csv text diff
-*.md text diff
-*.toml text diff
-*.png binary
-*.pt filter=lfs diff=lfs merge=lfs -text
-*.pth filter=lfs diff=lfs merge=lfs -text
-*.ckpt filter=lfs diff=lfs merge=lfs -text
