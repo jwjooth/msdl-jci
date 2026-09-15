@@ -13,7 +13,8 @@ jobs:
         with:
           python-version: "3.12"
       - uses: astral-sh/setup-uv@v3
-      - run: uv sync --group dev || uv sync
+      - run: uv sync
+      - run: uv pip install ruff mypy
       - run: uv run ruff check .
       - run: 'uv run mypy src || echo "mypy non-blocking, see docs/08_reproducibility.md"'
       - run: uv run pytest -v

@@ -2,8 +2,6 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
-# C extensions
 *.so
 
 # Distribution / packaging
@@ -21,7 +19,6 @@ sdist/
 var/
 wheels/
 *.egg-info/
-.installed.cfg
 *.egg
 
 # Virtual Environments
@@ -49,9 +46,8 @@ coverage.xml
 .env.local
 .env.*.local
 
-# Data (tracked: sample + schemas only)
+# Data (tracked: sample and schemas only)
 data/raw/*
-data/processed/*
 data/external/*
 !data/sample/
 !data/schemas/
@@ -66,9 +62,10 @@ artifacts/*
 *.pt
 *.pth
 *.bin
-models/*.pt
-models/*.pth
 
 # Logs & notebooks
 *.log
+.ipynb_checkpoints/
+
+# Jupyter
 .ipynb_checkpoints/

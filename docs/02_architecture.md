@@ -4,15 +4,20 @@
 
 | Concept | Module |
 |---|---|
-| Settings/paths | `config/settings.py` |
-| Dataset builder, indicators, alignment | `utils/dataset_builder.py` |
-| Causal macro features | `utils/macro_features.py` |
-| Branches, gating, fusion, baselines | `models/fusion.py` |
-| Walk-forward, seeding, thresholds, losses | `evaluation/walk_forward.py` |
-| Robust multi-fold validation | `evaluation/robust_walk_forward.py` |
-| Metrics (incl. MCC, PR-AUC, Brier) | `evaluation/metrics.py` |
-| Trading simulator (costs, Sortino, exposure) | `evaluation/trading_simulation.py` |
-| Ablation runner / entrypoints | `experiments/run_ablation.py`, `main.py` |
+| Settings/paths | `src/msdl_jci/config/settings.py` |
+| Dataset builder, indicators, alignment | `src/msdl_jci/utils/dataset_builder.py` |
+| Causal macro features | `src/msdl_jci/utils/macro_features.py` |
+| Model branches (LSTM, MLP, News), gating, fusion | `src/msdl_jci/models/fusion.py` |
+| Walk-forward validation, seeding, thresholds, losses | `src/msdl_jci/evaluation/walk_forward.py` |
+| Metrics (MCC, PR-AUC, Brier, etc.) | `src/msdl_jci/evaluation/metrics.py` |
+| Trading simulator (costs, Sortino, exposure) | `src/msdl_jci/evaluation/trading_simulation.py` |
+| Ablation runner / CLI entrypoints | `src/msdl_jci/experiments/run_ablation.py`, `src/msdl_jci/main.py` |
+
+## Structure changes
+- Removed legacy `src/msdl_jci/{core,domain,infrastructure,services,scraping,preprocessing}/`.
+- Removed duplicate `models/`, `utils/`, `config/` directories at repo root.
+- Removed diagnostic scripts in `scripts/` (replaced by `reports/`).
+- Added `notebooks/thesis_defense.ipynb` for defense visualization.
 
 ## Model branches
 - Technical LSTM (7 → 64, 2 layers, LayerNorm, dropout 0.2, lookback 28).
