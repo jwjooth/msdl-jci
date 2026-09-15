@@ -1,5 +1,6 @@
 """Classification metrics evaluation module for MSDL-JCI."""
 
+import warnings
 from dataclasses import dataclass
 
 import numpy as np
@@ -119,7 +120,9 @@ def compute_classification_metrics(
     except ValueError:
         brier = float("nan")
 
-    cm = confusion_matrix(y_true, y_pred, labels=[0, 1])
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)
+        cm = confusion_matrix(y_true, y_pred, labels=[0, 1])
     pos_rate = float(np.mean(y_pred)) if len(y_pred) else 0.0
 
     return ClassificationMetrics(

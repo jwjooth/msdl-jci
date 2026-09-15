@@ -31,16 +31,14 @@ class Settings:
     ROOT_DIR: Path = PROJECT_ROOT
     DATA_DIR: Path = PROJECT_ROOT / "data"
     DATA_RAW_DIR: Path = PROJECT_ROOT / "data" / "raw"
-    DATA_MACRO_DIR: Path = PROJECT_ROOT / "data" / "raw" / "macro"
-    DATA_TECHNICAL_DIR: Path = PROJECT_ROOT / "data" / "raw" / "technical"
     DATA_PROCESSED_DIR: Path = PROJECT_ROOT / "data" / "processed"
     DATA_DATABASE_DIR: Path = PROJECT_ROOT / "data" / "database"
 
     # Default file paths
-    BI_RATE_CSV: Path = PROJECT_ROOT / "data" / "raw" / "macro" / "bi_rate.csv"
-    INFLATION_CSV: Path = PROJECT_ROOT / "data" / "raw" / "macro" / "inflation_data.csv"
-    KURS_CSV: Path = PROJECT_ROOT / "data" / "raw" / "macro" / "kurs_usdidr.csv"
-    JCI_HISTORICAL_CSV: Path = PROJECT_ROOT / "data" / "raw" / "technical" / "jci_historical.csv"
+    BI_RATE_CSV: Path = PROJECT_ROOT / "data" / "raw" / "bi_rate.csv"
+    INFLATION_CSV: Path = PROJECT_ROOT / "data" / "raw" / "inflation_data.csv"
+    KURS_CSV: Path = PROJECT_ROOT / "data" / "raw" / "kurs_usdidr.csv"
+    JCI_HISTORICAL_CSV: Path = PROJECT_ROOT / "data" / "raw" / "jci_historical.csv"
     SQLITE_DB_PATH: Path = PROJECT_ROOT / "data" / "database" / "berita_ihsg_enterprise.db"
     DAILY_NEWS_EMBEDDINGS_CSV: Path = PROJECT_ROOT / "data" / "processed" / "daily_news_embeddings.csv"
     PROCESSED_DAILY_NEWS_CSV: Path = PROJECT_ROOT / "data" / "processed" / "processed_daily_news.csv"
