@@ -1,4 +1,0 @@
-Modality,Weight Parameter,Mean Weight,Contribution (%)
-Technical (LSTM),alpha,0.2943,29.43
-Macroeconomic (MLP),beta,0.4197,41.97
-Financial News (IndoBERT),gamma,0.286,28.6

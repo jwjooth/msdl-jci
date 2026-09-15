@@ -1,3 +1,0 @@
-[model]
-# placeholder: select one of pure_lstm | lstm_macro | lstm_news | static_fusion | proposed
-name = "lstm_macro"

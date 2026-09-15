@@ -1,6 +1,0 @@
-Model,Total Return (%),Benchmark Return (%),Sharpe Ratio,Max Drawdown (%),Win Rate (%),Total Trades
-Pure LSTM (Technical only),29.02,25.32,1.151,12.63,63.64,22
-LSTM + Macro,24.82,25.32,0.687,23.77,58.67,75
-LSTM + News,24.82,25.32,0.687,23.77,58.67,75
-LSTM + Static Fusion,6.1,25.32,-0.121,3.09,50.0,4
-Proposed (Adaptive Soft Gating),3.5,25.32,0.022,25.05,57.5,40

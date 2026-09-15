@@ -1,1 +1,0 @@
-MODEL COLLAPSE DETECTED: test prob std=0.00143 — predictions are near-constant!
