@@ -29,7 +29,8 @@ jobs:
 
       - name: Sync dependencies
         run: uv sync --frozen
-
+      - name: Install dependencies
+        run: uv pip install -r .\requirements.txt
       - name: Lint with Ruff
         run: uv run ruff check . --fix --exit-zero
 
