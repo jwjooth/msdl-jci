@@ -1,7 +1,0 @@
-# Training fixes (validated on VAL)
-
-- LR sweep: [{'lr': 0.0001, 'val_auc': 0.5133, 'val_mcc': 0.1325, 'val_p_std': 0.00562, 'grad': 0.319, 'gates': [0.327, 0.35, 0.324]}, {'lr': 0.0003, 'val_auc': 0.4926, 'val_mcc': -0.0105, 'val_p_std': 0.00429, 'grad': 0.2254, 'gates': [0.328, 0.359, 0.312]}, {'lr': 0.001, 'val_auc': 0.4718, 'val_mcc': 0.0, 'val_p_std': 0.00369, 'grad': 0.1911, 'gates': [0.29, 0.434, 0.276]}, {'lr': 0.003, 'val_auc': 0.4322, 'val_mcc': 0.0, 'val_p_std': 0.0025, 'grad': 0.1588, 'gates': [0.273, 0.474, 0.254]}]
-- WD sweep: [{'wd': 0.0, 'val_auc_2ep': 0.4435, 'val_p_std': 0.00169}, {'wd': 1e-05, 'val_auc_2ep': 0.4435, 'val_p_std': 0.00169}, {'wd': 0.0001, 'val_auc_2ep': 0.4431, 'val_p_std': 0.00169}, {'wd': 0.001, 'val_auc_2ep': 0.4396, 'val_p_std': 0.00179}]
-- Dropout sweep: [{'dropout': 0.0, 'val_auc': 0.4383, 'val_mcc': 0.0, 'val_p_std': 0.00737, 'grad': 0.2705, 'gates': [0.21, 0.553, 0.237]}, {'dropout': 0.1, 'val_auc': 0.4648, 'val_mcc': 0.0979, 'val_p_std': 0.00657, 'grad': 0.2541, 'gates': [0.238, 0.495, 0.267]}, {'dropout': 0.2, 'val_auc': 0.4718, 'val_mcc': 0.0, 'val_p_std': 0.00369, 'grad': 0.1911, 'gates': [0.29, 0.434, 0.276]}, {'dropout': 0.3, 'val_auc': 0.4491, 'val_mcc': 0.0915, 'val_p_std': 0.00461, 'grad': 0.2218, 'gates': [0.297, 0.393, 0.31]}]
-
-- Adopted: lr=1e-3, wd=1e-4 (default), dropout 0.2, entropy_lambda=0.01, temperature=2.0, min_weight=0.05 unless a sweep winner clearly dominates on VAL.
