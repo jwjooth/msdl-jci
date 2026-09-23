@@ -1,4 +1,0 @@
-col,n_unique,n_rows,frac_unique,daily_change_std,frac_days_changed
-bi_rate,12,1908,0.0063,0.037110120182463034,0.0157
-inflation_rate,82,1908,0.043,0.08320710483590048,0.0498
-usd_idr,1683,1908,0.8821,101.69611625344336,0.9953
