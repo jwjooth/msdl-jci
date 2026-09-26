@@ -1,0 +1,9 @@
+tone_instructions: |
+  Keep reviews concise and direct. Focus on actionable issues in logic,
+  security, performance, and error handling. Skip routine style feedback
+  covered by linters. Suggest a concrete fix when possible.
+
+reviews:
+  profile: chill
+  auto_approve_if_clean: true 
+  request_changes_workflow: true
