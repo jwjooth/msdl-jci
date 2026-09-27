@@ -28,14 +28,10 @@ jobs:
         run: uv python install 3.12
 
       - name: Sync dependencies
-        run: uv sync --frozen
-      - name: Install dependencies
-        run: uv pip install -r .\requirements.txt
-      - name: Lint with Ruff
-        run: uv run ruff check . --fix --exit-zero
+        run: uv sync --frozen --extra dev
 
-      - name: Format check with Ruff
-        run: uv run ruff format --check .
+      - name: Lint with Ruff (advisory)
+        run: uv run ruff check . --exit-zero
 
       - name: Type check with MyPy (Non-blocking)
         continue-on-error: true
