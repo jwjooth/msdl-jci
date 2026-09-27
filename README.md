@@ -13,16 +13,17 @@ Deployment Status: Research/thesis defense only. Not for live trading.
 ## Executive summary
 
 - **Built:** leak-free multimodal pipeline (point-in-time alignment, train-only scaling, embargoed walk-forward, validation-only thresholds, cost-aware trading sim).
-- **Tested:** 5 neural models + 9 statistical/ML baselines, 2 folds × 3 seeds, Wilcoxon/t-test + bootstrap statistics. All tests pass.
+- **Tested:** 5 neural models + 9 statistical/ML baselines, 2 folds × 3 seeds, Wilcoxon/t-test + bootstrap statistics.
 - **Failed:** the proposed Adaptive Soft Gating model collapsed (near-constant probabilities, MCC ≈ 0); branch probes showed AUC ≈ 0.50 per modality; gating fixes balanced weights but not signal.
 - **Learned:** the bottleneck is data signal (stale macro, sparse news, weak technical edge at t+5), not engineering.
 - **Useful:** evaluation methodology, diagnostic suite, and honest negative evidence. LSTM + Macro retained as research baseline only; nothing is deployable.
+
+> Branch note (`refactor`): this branch is a mid-migration simplification. The test suite is currently RED (config refactor gap — see AGENTS.md) and no `data/` ships with it. Nothing here runs end-to-end yet.
 
 ## Key results
 
 | Item | Finding | Evidence |
 |---|---:|---|
-| Tests | All pass | pytest |
 | Proposed model | Not viable | MCC near zero, probability collapse |
 | Branch-only AUC | ~0.50 | branch probes |
 | Gating fixes | Stabilized weights but not signal | entropy improved, MCC unchanged |
@@ -48,37 +49,29 @@ flowchart TD
   K --> L[Test Evaluation]
   L --> M[Classification Metrics]
   L --> N[Trading Simulation with Costs]
-  M --> O[Reports]
-  N --> O
 ```
-
-Module map: `src/msdl_jci/` — see `docs/02_architecture.md`.
 
 ## Repository structure
 
 ```text
 MSDL-JCI/
-├─ .github/workflows/ci.yml    # CI pipeline
-├─ configs/                    # frozen thesis settings + overrides
-├─ data/                       # raw (git-ignored) / processed / sample / schemas
-├─ docs/                       # 01–11 defense documentation
-├─ notebooks/                  # thesis_defense.ipynb (visualization)
-├─ reports/                    # phase_00 … phase_11 + final_recommendation.md
-├─ scripts/                    # essential runners only
-├─ src/msdl_jci/               # package (models, evaluation, training, experiments)
-├─ tests/                      # unit / integration
-├─ artifacts/                  # large outputs (not committed)
-├─ Makefile Dockerfile pyproject.toml uv.lock requirements.txt
-├─ README.md
+├─ .github/workflows/ci.yml    # CI pipeline (uv sync, advisory ruff, non-blocking mypy, pytest)
+├─ notebooks/                  # development.ipynb (runnable synthetic demo)
+├─ src/msdl_jci/               # package (config, models, evaluation, experiments, utils)
+├─ tests/                      # unit / integration (synthetic, no data files)
+├─ pyproject.toml uv.lock .python-version
+├─ AGENTS.md README.md
 ```
+
+Shipped without: raw/processed data, `docs/`, `reports/`, `scripts/`, `configs/`, `Makefile`, `Dockerfile`. See AGENTS.md for what is actually on disk.
 
 ## Quickstart
 
 ```bash
-uv sync
-uv run pytest -v
+uv sync --extra dev
+uv run pytest -q
 uv run msdl-jci --mode proposed --epochs 40
-uv run python -m msdl_jci.experiments.run_ablation
+uv run msdl-jci-ablation
 ```
 
 Fallback (no uv):
@@ -86,41 +79,41 @@ Fallback (no uv):
 ```bash
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
-pip install -e ".[dev]"
-pytest -v
+pip install -e .
+pytest -q
 python -m msdl_jci.main --mode proposed --epochs 40
 ```
 
-See `make` targets (`install lint format type test smoke run-proposed run-ablation clean`).
-
-### Environment notes
-- Some audit runs used `PYTHONPATH=src python3 ...` because `uv` was unavailable in a Linux shell over a Windows-built `.venv` — same code, same seed (42).
-- Recreate `.venv` locally; the committed one (if present) is not portable.
+`uv.lock` is the single source of truth for dependencies. Lint (`ruff`) and typecheck (`mypy`) come from the `dev` extra, so plain `uv sync` won't put them on PATH.
 
 ## Data requirements
 
+No data ships on this branch. A full run expects (not present):
+
 ```text
-data/raw/technical/jci_historical.csv
-data/raw/macro/bi_rate.csv
-data/raw/macro/inflation_data.csv
-data/raw/macro/kurs_usdidr.csv
-data/processed/daily_news_embeddings.csv
+data/raw/jci_historical.csv
+data/raw/bi_rate.csv
+data/raw/inflation_data.csv
+data/raw/kurs_usdidr.csv
+data/processed/daily_news_embeddings.csv   # 768-d IndoBERT vectors
 ```
 
-Schemas, formats, missing-data rules, and point-in-time assumptions: `data/schemas/columns.md`, `docs/03_data_pipeline.md`. CI uses `data/sample/aligned_sample.csv` (raw data is git-ignored).
+When the news embedding file is absent, the builder substitutes all-zero news vectors, so the news modality carries no signal. Tests are fully synthetic (generated in-code) and need no data files.
 
-## Experiment reports
+## Dev notebook
 
-`docs/07_reports_index.md` maps all phases: phase_00_baseline · phase_01_collapse · phase_02_branch_diagnosis · phase_03_gating · phase_04_macro · phase_05_news · phase_06_training_dynamics · phase_07_objective_threshold · phase_08_baselines · phase_09_robust_validation · phase_10_trading · phase_11_experiments · `reports/final_recommendation.md`.
+`notebooks/development.ipynb` — self-contained runnable demo of the builder logic on synthetic data: causal technical indicators, point-in-time ffill macro alignment, t+5 labeling, train-only scaler fitting (`train_end_idx`), and windowed tensor construction. Execute with:
 
-## Thesis defense notebook
+```bash
+uv run jupyter execute notebooks/development.ipynb --inplace
+```
 
-`notebooks/app.ipynb` — visualizes architecture, training dynamics (loss curves, hyperparameter sweeps), classification results, gating weight analysis, trading simulation, and equity curves. Run with Jupyter to reproduce all defense figures.
+`notebooks/01_data_alignment_example.ipynb` and `notebooks/app.ipynb` are stale on this branch — they read `data/raw/` and `reports/`/`data/processed/`, which do not exist here.
 
 ## Limitations and risks
 
-Not investment advice; not live-trading ready; historical simulation only. Cost assumptions may change results; macro release-date and news-timing assumptions are imperfect; small, non-stationary sample. Full list: `docs/09_limitations_and_risks.md`.
+Not investment advice; not live-trading ready; historical simulation only. Cost assumptions may change results; macro release-date and news-timing assumptions are imperfect; small, non-stationary sample.
 
-## License and citation
+## License
 
-MIT — see `LICENSE`. Cite via `CITATION.cff`. Thesis narrative: `docs/10_thesis_defense.md`.
+MIT.
