@@ -7,6 +7,8 @@ from numpy import dtype, float64, ndarray
 from numpy.typing import NDArray
 from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import MinMaxScaler
+
+from msdl_jci.config.settings import get_settings
 from msdl_jci.utils.data_loader import read_numeric_series
 from msdl_jci.utils.logging_config import get_logger
 
