@@ -50,9 +50,7 @@ class Settings:
     BI_RATE_CSV: Path = BASE_DIR / "data" / "raw" / "bi_rate.csv"
     INFLATION_CSV: Path = BASE_DIR / "data" / "raw" / "inflation_data.csv"
     KURS_CSV: Path = BASE_DIR / "data" / "raw" / "kurs_usdidr.csv"
-    DAILY_NEWS_EMBEDDINGS_CSV: Path = (
-        BASE_DIR / "data" / "processed" / "daily_news_embeddings.csv"
-    )
+    DAILY_NEWS_EMBEDDINGS_CSV: Path = BASE_DIR / "data" / "processed" / "daily_news_embeddings.csv"
 
     ML_LOOK_BACK: int = int(os.getenv("ML_LOOK_BACK", "28"))
     ML_PREDICTION_HORIZON: int = int(os.getenv("ML_PREDICTION_HORIZON", "5"))

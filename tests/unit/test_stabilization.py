@@ -63,10 +63,14 @@ def test_macro_change_features_causal():
     from msdl_jci.utils.macro_features import ENGINEERED_MACRO_COLS, add_macro_change_features
 
     n = 300
-    df = pd.DataFrame({
-        "Date": pd.date_range("2020-01-01", periods=n, freq="B"),
-        "bi_rate": 5.0, "inflation_rate": 3.0, "usd_idr": 15000.0,
-    })
+    df = pd.DataFrame(
+        {
+            "Date": pd.date_range("2020-01-01", periods=n, freq="B"),
+            "bi_rate": 5.0,
+            "inflation_rate": 3.0,
+            "usd_idr": 15000.0,
+        }
+    )
     df.loc[100:, "bi_rate"] = 6.0  # step change at row 100
     out = add_macro_change_features(df)
     for c in ENGINEERED_MACRO_COLS:

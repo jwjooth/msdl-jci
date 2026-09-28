@@ -41,9 +41,7 @@ class MacroDataEncoder:
         data = values.reshape(-1, 1)
 
         if len(data) <= self.look_back:
-            raise ValueError(
-                f"Not enough rows ({len(data)}) for look_back={self.look_back}."
-            )
+            raise ValueError(f"Not enough rows ({len(data)}) for look_back={self.look_back}.")
 
         scaler = MinMaxScaler(feature_range=(0, 1))
         scaled_data = scaler.fit_transform(data)

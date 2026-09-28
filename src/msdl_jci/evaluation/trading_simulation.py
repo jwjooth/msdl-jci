@@ -20,23 +20,23 @@ import numpy as np
 class FinancialMetrics:
     """Financial and economic performance metrics matching Thesis Section 2.7."""
 
-    total_return: float        # Strategy total percentage return (%) — NET of costs
-    benchmark_return: float    # Buy & Hold JCI percentage return (%)
-    annualized_return: float   # Compound Annual Growth Rate (%, net)
-    sharpe_ratio: float        # Annualized Sharpe ratio (net)
-    max_drawdown: float        # Maximum peak-to-trough decline (%)
-    win_rate: float            # Percentage of winning long trades (%)
-    total_trades: int          # Total trades executed
-    equity_curve: np.ndarray   # Strategy cumulative value trajectory (net)
+    total_return: float  # Strategy total percentage return (%) — NET of costs
+    benchmark_return: float  # Buy & Hold JCI percentage return (%)
+    annualized_return: float  # Compound Annual Growth Rate (%, net)
+    sharpe_ratio: float  # Annualized Sharpe ratio (net)
+    max_drawdown: float  # Maximum peak-to-trough decline (%)
+    win_rate: float  # Percentage of winning long trades (%)
+    total_trades: int  # Total trades executed
+    equity_curve: np.ndarray  # Strategy cumulative value trajectory (net)
     benchmark_curve: np.ndarray  # Benchmark cumulative value trajectory
     # --- Audit Phase 2 extras ---
-    gross_return: float = 0.0       # Total return before costs (%)
-    total_costs: float = 0.0        # Cumulative transaction costs + slippage (% of capital drag, pp)
-    sortino_ratio: float = 0.0      # Annualized Sortino ratio (downside deviation)
-    exposure_pct: float = 0.0       # % of steps invested (long)
-    turnover: float = 0.0           # Avg trades per step (0..1 with stride sampling)
+    gross_return: float = 0.0  # Total return before costs (%)
+    total_costs: float = 0.0  # Cumulative transaction costs + slippage (% of capital drag, pp)
+    sortino_ratio: float = 0.0  # Annualized Sortino ratio (downside deviation)
+    exposure_pct: float = 0.0  # % of steps invested (long)
+    turnover: float = 0.0  # Avg trades per step (0..1 with stride sampling)
     transaction_cost_rate: float = 0.0  # Per-side cost used
-    slippage_rate: float = 0.0          # Per-side slippage used
+    slippage_rate: float = 0.0  # Per-side slippage used
 
     def to_dict(self) -> dict[str, float | int]:
         return {
@@ -211,7 +211,7 @@ def simulate_trading_strategy(
         win_rate = 0.0
 
     exposure = (n_long_steps / max(len(indices), 1)) * 100.0
-    turnover = (len(trade_outcomes) / max(len(indices), 1))
+    turnover = len(trade_outcomes) / max(len(indices), 1)
 
     return FinancialMetrics(
         total_return=float(total_ret_net),

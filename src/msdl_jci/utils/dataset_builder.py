@@ -22,18 +22,33 @@ from msdl_jci.utils.logging_config import get_logger
 logger = get_logger(__name__)
 
 MONTH_MAP = {
-    "januari": "01", "jan": "01",
-    "februari": "02", "feb": "02",
-    "maret": "03", "mar": "03",
-    "april": "04", "apr": "04",
-    "mei": "05", "may": "05",
-    "juni": "06", "jun": "06",
-    "juli": "07", "jul": "07",
-    "agustus": "08", "agu": "08", "aug": "08",
-    "september": "09", "sep": "09",
-    "oktober": "10", "okt": "10", "oct": "10",
-    "november": "11", "nov": "11",
-    "desember": "12", "des": "12", "dec": "12",
+    "januari": "01",
+    "jan": "01",
+    "februari": "02",
+    "feb": "02",
+    "maret": "03",
+    "mar": "03",
+    "april": "04",
+    "apr": "04",
+    "mei": "05",
+    "may": "05",
+    "juni": "06",
+    "jun": "06",
+    "juli": "07",
+    "jul": "07",
+    "agustus": "08",
+    "agu": "08",
+    "aug": "08",
+    "september": "09",
+    "sep": "09",
+    "oktober": "10",
+    "okt": "10",
+    "oct": "10",
+    "november": "11",
+    "nov": "11",
+    "desember": "12",
+    "des": "12",
+    "dec": "12",
 }
 
 
@@ -134,9 +149,7 @@ class MultiSourceDatasetBuilder:
         settings = get_settings()
         self.look_back = look_back if look_back is not None else settings.ML_LOOK_BACK
         self.prediction_horizon = (
-            prediction_horizon
-            if prediction_horizon is not None
-            else settings.ML_PREDICTION_HORIZON
+            prediction_horizon if prediction_horizon is not None else settings.ML_PREDICTION_HORIZON
         )
         self.tech_feature_cols = [
             "Close",
@@ -161,11 +174,7 @@ class MultiSourceDatasetBuilder:
         period_col = "Period" if "Period" in df_bi.columns else df_bi.columns[1]
         df_bi["Date"] = parse_indonesian_date(df_bi[period_col])
         df_bi["bi_rate"] = (
-            df_bi[bi_col]
-            .astype(str)
-            .str.replace("%", "", regex=False)
-            .str.strip()
-            .astype(float)
+            df_bi[bi_col].astype(str).str.replace("%", "", regex=False).str.strip().astype(float)
         )
         df_bi = df_bi.dropna(subset=["Date"]).sort_values("Date")[["Date", "bi_rate"]].copy()
 
@@ -175,13 +184,11 @@ class MultiSourceDatasetBuilder:
         inf_pcol = "Periode" if "Periode" in df_inf.columns else df_inf.columns[0]
         df_inf["Date"] = parse_indonesian_date(df_inf[inf_pcol], day_first=False)
         df_inf["inflation_rate"] = (
-            df_inf[inf_col]
-            .astype(str)
-            .str.replace("%", "", regex=False)
-            .str.strip()
-            .astype(float)
+            df_inf[inf_col].astype(str).str.replace("%", "", regex=False).str.strip().astype(float)
         )
-        df_inf = df_inf.dropna(subset=["Date"]).sort_values("Date")[["Date", "inflation_rate"]].copy()
+        df_inf = (
+            df_inf.dropna(subset=["Date"]).sort_values("Date")[["Date", "inflation_rate"]].copy()
+        )
 
         # 3. Kurs USD/IDR
         df_kurs = pd.read_csv(kurs_path)
@@ -244,7 +251,9 @@ class MultiSourceDatasetBuilder:
         df_master["bi_rate"] = df_master["bi_rate"].ffill()
         df_master["inflation_rate"] = df_master["inflation_rate"].ffill()
         # Drop leading rows where macro data was not yet available (no look-ahead).
-        df_master = df_master.dropna(subset=["usd_idr", "bi_rate", "inflation_rate"]).reset_index(drop=True)
+        df_master = df_master.dropna(subset=["usd_idr", "bi_rate", "inflation_rate"]).reset_index(
+            drop=True
+        )
 
         # 3. Target Labeling for Horizon t+5 (Thesis Section 2.3)
         h = self.prediction_horizon

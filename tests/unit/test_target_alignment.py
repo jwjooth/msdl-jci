@@ -10,11 +10,16 @@ def _toy_jci(n=60, horizon=5, seed=0):
     rng = np.random.default_rng(seed)
     close = 100 + np.cumsum(rng.normal(0, 1, size=n))
     dates = pd.date_range("2020-01-01", periods=n, freq="B")
-    df = pd.DataFrame({
-        "Date": dates, "Open": close, "High": close + 1,
-        "Low": close - 1, "Close": close,
-        "Volume": np.full(n, 1e6),
-    })
+    df = pd.DataFrame(
+        {
+            "Date": dates,
+            "Open": close,
+            "High": close + 1,
+            "Low": close - 1,
+            "Close": close,
+            "Volume": np.full(n, 1e6),
+        }
+    )
     return df
 
 

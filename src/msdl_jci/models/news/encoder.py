@@ -49,7 +49,9 @@ class NewsDataEncoder:
                 raise KeyError(f"No numeric feature column found in {path_obj}")
             feature_column = numeric_cols[0]
 
-        values = pd.to_numeric(df[feature_column], errors="coerce").dropna().to_numpy(dtype=np.float64)
+        values = (
+            pd.to_numeric(df[feature_column], errors="coerce").dropna().to_numpy(dtype=np.float64)
+        )
         if len(values) <= self.look_back:
             raise ValueError(
                 f"Data has {len(values)} rows but look_back={self.look_back}. "

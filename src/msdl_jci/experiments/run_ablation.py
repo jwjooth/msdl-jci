@@ -44,6 +44,7 @@ def run_thesis_experiments(
 ) -> dict[str, EvaluationResults]:
     """Run full suite of ablation models and produce comparative tables."""
     import torch
+
     torch.manual_seed(seed)
     np.random.seed(seed)
 
@@ -76,9 +77,7 @@ def run_thesis_experiments(
         ("LSTM + Static Fusion", lambda: StaticFusionModel()),
         (
             "Proposed (Adaptive Soft Gating)",
-            lambda: AdaptiveSoftGatingFusionModel(
-                pos_rate=_pos_rate, modality_dropout=0.05
-            ),
+            lambda: AdaptiveSoftGatingFusionModel(pos_rate=_pos_rate, modality_dropout=0.05),
         ),
     ]
 
@@ -115,7 +114,15 @@ def run_thesis_experiments(
         ["Model", "Accuracy", "F1-Score", "Precision", "Recall", "ROC-AUC"]
     ]
     df_fin = pd.DataFrame(fin_rows)[
-        ["Model", "Total Return (%)", "Benchmark Return (%)", "Sharpe Ratio", "Max Drawdown (%)", "Win Rate (%)", "Total Trades"]
+        [
+            "Model",
+            "Total Return (%)",
+            "Benchmark Return (%)",
+            "Sharpe Ratio",
+            "Max Drawdown (%)",
+            "Win Rate (%)",
+            "Total Trades",
+        ]
     ]
 
     clf_csv = out_path / "ablation_classification_metrics.csv"
@@ -141,12 +148,22 @@ def run_thesis_experiments(
         mean_beta = float(np.mean(gw[:, 1]))
         mean_gamma = float(np.mean(gw[:, 2]))
 
-        gating_summary = pd.DataFrame({
-            "Modality": ["Technical (LSTM)", "Macroeconomic (MLP)", "Financial News (IndoBERT)"],
-            "Weight Parameter": ["alpha", "beta", "gamma"],
-            "Mean Weight": [round(mean_alpha, 4), round(mean_beta, 4), round(mean_gamma, 4)],
-            "Contribution (%)": [round(mean_alpha * 100, 2), round(mean_beta * 100, 2), round(mean_gamma * 100, 2)],
-        })
+        gating_summary = pd.DataFrame(
+            {
+                "Modality": [
+                    "Technical (LSTM)",
+                    "Macroeconomic (MLP)",
+                    "Financial News (IndoBERT)",
+                ],
+                "Weight Parameter": ["alpha", "beta", "gamma"],
+                "Mean Weight": [round(mean_alpha, 4), round(mean_beta, 4), round(mean_gamma, 4)],
+                "Contribution (%)": [
+                    round(mean_alpha * 100, 2),
+                    round(mean_beta * 100, 2),
+                    round(mean_gamma * 100, 2),
+                ],
+            }
+        )
         gating_csv = out_path / "gating_weights_summary.csv"
         gating_summary.to_csv(gating_csv, index=False)
 
@@ -167,7 +184,13 @@ def run_thesis_experiments(
             ax.plot(res.financial_metrics.equity_curve, label=name)
         # Benchmark curve from any result
         any_res = next(iter(results.values()))
-        ax.plot(any_res.financial_metrics.benchmark_curve, label="Buy-and-Hold JCI", linestyle="--", color="black", alpha=0.7)
+        ax.plot(
+            any_res.financial_metrics.benchmark_curve,
+            label="Buy-and-Hold JCI",
+            linestyle="--",
+            color="black",
+            alpha=0.7,
+        )
         ax.set_title("MSDL-JCI: Cumulative Portfolio Returns across Ablation Models")
         ax.set_xlabel("Rebalancing Trade Steps (5-Day Horizon)")
         ax.set_ylabel("Portfolio Value (Base=100)")
