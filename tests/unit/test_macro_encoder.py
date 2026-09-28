@@ -8,6 +8,7 @@ from msdl_jci.models.macro.pipeline import MacroPipeline
 
 
 def test_macro_encoder_fit_and_encode():
+    """Verify default SQLite sources produce a nonempty three-column macro array."""
     settings = get_settings()
     encoder = MacroDataEncoder(look_back=settings.ML_LOOK_BACK)
 

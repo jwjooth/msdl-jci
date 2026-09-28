@@ -7,6 +7,7 @@ from msdl_jci.models.technical.pipeline import TechnicalPipeline
 
 
 def test_technical_encoder_fit_and_predict():
+    """Verify default SQLite prices produce a nonempty single-column prediction array."""
     encoder = TechnicalDataEncoder(look_back=10)
     preds = encoder.fit_and_predict()
 

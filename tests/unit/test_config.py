@@ -11,6 +11,7 @@ def test_settings_singleton():
 
 
 def test_settings_paths_exist():
+    """Verify the configured project root and SQLite database exist."""
     settings = get_settings()
     assert settings.ROOT_DIR.exists()
     assert settings.SQLITE_DB_PATH.exists()

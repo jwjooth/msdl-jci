@@ -38,6 +38,11 @@ class MacroDataEncoder:
         remove_symbol: str = "",
         table_name: str = "",
     ) -> TrainedMLPResult:
+        """Fit an MLP to a CSV or SQLite series and return scaled predictions.
+
+        Use the configured database's ``table_name`` when ``csv_path`` is omitted.
+        Raise ValueError if the series is too short for the look-back window.
+        """
         if csv_path is None:
             values = read_sqlite_series(
                 table_name, column_name, get_settings().SQLITE_DB_PATH, remove_symbol
@@ -75,6 +80,11 @@ class MacroDataEncoder:
         inflation_csv: str | Path | None = None,
         kurs_csv: str | Path | None = None,
     ) -> ndarray[tuple[Any, ...], dtype[float64]] | None:
+        """Train the three macro models and cache their combined predictions.
+
+        Omitted CSV paths use the corresponding SQLite tables. Return a
+        three-column array, truncating each series to the shortest output.
+        """
         logger.info("Training BI Rate model from %s...", bi_rate_csv or "bi_rate table")
         self.bi_result = self._train_single_series(
             bi_rate_csv, "BI-7Day-RR", "%", table_name="bi_rate"

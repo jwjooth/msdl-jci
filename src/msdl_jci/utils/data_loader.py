@@ -48,6 +48,11 @@ def load_frame(
 
 
 def _clean_numeric(series: pd.Series, remove_symbol: str = "") -> NDArray[np.float64]:
+    """Convert a series to float64 values, raising on invalid numeric data.
+
+    When ``remove_symbol`` is set, strip it, commas, and surrounding whitespace
+    before conversion.
+    """
     if remove_symbol:
         series = (
             series.astype(str)
