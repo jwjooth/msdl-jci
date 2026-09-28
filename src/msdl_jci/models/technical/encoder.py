@@ -46,6 +46,11 @@ class TechnicalDataEncoder:
         csv_path: str | Path | None = None,
         column_name: str = "Close",
     ) -> TrainedPriceResult:
+        """Fit an MLP to cleaned prices and return its scaler and scaled predictions.
+
+        Read the supplied CSV or default to the SQLite ``jci_historical`` table.
+        Raise ValueError if too few valid prices remain for the look-back window.
+        """
         df = load_frame(csv_path, "jci_historical", get_settings().SQLITE_DB_PATH)
         if "Date" in df.columns:
             df["Date"] = pd.to_datetime(df["Date"], errors="coerce")

@@ -5,6 +5,7 @@ from msdl_jci.utils.data_loader import ENTITY_TABLES, read_sqlite_table
 
 
 def test_entity_tables_match_db():
+    """Verify all expected SQLite tables contain rows and required columns."""
     db = get_settings().SQLITE_DB_PATH
     assert set(ENTITY_TABLES) == {
         "jci_historical",
