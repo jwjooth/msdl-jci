@@ -9,7 +9,7 @@ from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import MinMaxScaler
 
 from msdl_jci.config.settings import get_settings
-from msdl_jci.utils.data_loader import read_numeric_series
+from msdl_jci.utils.data_loader import read_numeric_series, read_sqlite_series
 from msdl_jci.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -33,11 +33,17 @@ class MacroDataEncoder:
 
     def _train_single_series(
         self,
-        csv_path: str | Path,
-        column_name: str,
+        csv_path: str | Path | None = None,
+        column_name: str = "",
         remove_symbol: str = "",
+        table_name: str = "",
     ) -> TrainedMLPResult:
-        values = read_numeric_series(csv_path, column_name, remove_symbol)
+        if csv_path is None:
+            values = read_sqlite_series(
+                table_name, column_name, get_settings().SQLITE_DB_PATH, remove_symbol
+            )
+        else:
+            values = read_numeric_series(csv_path, column_name, remove_symbol)
         data = values.reshape(-1, 1)
 
         if len(data) <= self.look_back:
@@ -65,18 +71,24 @@ class MacroDataEncoder:
 
     def fit_and_encode(
         self,
-        bi_rate_csv: str | Path,
-        inflation_csv: str | Path,
-        kurs_csv: str | Path,
+        bi_rate_csv: str | Path | None = None,
+        inflation_csv: str | Path | None = None,
+        kurs_csv: str | Path | None = None,
     ) -> ndarray[tuple[Any, ...], dtype[float64]] | None:
-        logger.info("Training BI Rate model from %s...", bi_rate_csv)
-        self.bi_result = self._train_single_series(bi_rate_csv, "BI-7Day-RR", "%")
+        logger.info("Training BI Rate model from %s...", bi_rate_csv or "bi_rate table")
+        self.bi_result = self._train_single_series(
+            bi_rate_csv, "BI-7Day-RR", "%", table_name="bi_rate"
+        )
 
-        logger.info("Training Inflation model from %s...", inflation_csv)
-        self.inflation_result = self._train_single_series(inflation_csv, "Data Inflasi", "%")
+        logger.info("Training Inflation model from %s...", inflation_csv or "inflation_data table")
+        self.inflation_result = self._train_single_series(
+            inflation_csv, "Data Inflasi", "%", table_name="inflation_data"
+        )
 
-        logger.info("Training Kurs USD/IDR model from %s...", kurs_csv)
-        self.kurs_result = self._train_single_series(kurs_csv, "Close")
+        logger.info("Training Kurs USD/IDR model from %s...", kurs_csv or "kurs_usdidr table")
+        self.kurs_result = self._train_single_series(
+            kurs_csv, "Close", table_name="kurs_usdidr"
+        )
 
         min_len = min(
             len(self.bi_result.predictions),

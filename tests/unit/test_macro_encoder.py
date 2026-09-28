@@ -11,11 +11,7 @@ def test_macro_encoder_fit_and_encode():
     settings = get_settings()
     encoder = MacroDataEncoder(look_back=settings.ML_LOOK_BACK)
 
-    features = encoder.fit_and_encode(
-        bi_rate_csv=settings.BI_RATE_CSV,
-        inflation_csv=settings.INFLATION_CSV,
-        kurs_csv=settings.KURS_CSV,
-    )
+    features = encoder.fit_and_encode()
 
     assert isinstance(features, np.ndarray)
     assert features.ndim == 2

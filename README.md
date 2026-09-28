@@ -18,7 +18,7 @@ Deployment Status: Research/thesis defense only. Not for live trading.
 - **Learned:** the bottleneck is data signal (stale macro, sparse news, weak technical edge at t+5), not engineering.
 - **Useful:** evaluation methodology, diagnostic suite, and honest negative evidence. LSTM + Macro retained as research baseline only; nothing is deployable.
 
-> Branch note (`refactor`): simplification branch — no `data/` ships with it, so the 7 failing tests are all missing-CSV `FileNotFoundError`s (34 pass). The only runnable artifact is `notebooks/development.ipynb` (self-contained synthetic demo).
+> Branch note (`refactor`): simplification branch — data lives in git-ignored SQLite (`database/main_database.db`), not CSVs. Suite is green (41 passed); the only runnable artifact besides the package is `notebooks/development.ipynb` (self-contained synthetic demo).
 
 ## Key results
 
@@ -69,6 +69,7 @@ Shipped without: raw/processed data, `docs/`, `reports/`, `scripts/`, `configs/`
 
 ```bash
 uv sync --extra dev
+cp .env.example .env  # optional: defaults work without it
 uv run pytest -q
 uv run msdl-jci --mode proposed --epochs 40
 uv run msdl-jci-ablation
@@ -88,17 +89,14 @@ python -m msdl_jci.main --mode proposed --epochs 40
 
 ## Data requirements
 
-No data ships on this branch. A full run expects (not present):
+Single SQLite file (git-ignored, `DATABASE_PATH` env overrides):
 
 ```text
-data/raw/jci_historical.csv
-data/raw/bi_rate.csv
-data/raw/inflation_data.csv
-data/raw/kurs_usdidr.csv
-data/processed/daily_news_embeddings.csv   # 768-d IndoBERT vectors
+database/main_database.db   # jci_historical, bi_rate, inflation_data, kurs_usdidr
+                            # + cnbc/detik/kontan_ihsg_articles
 ```
 
-When the news embedding file is absent, the builder substitutes all-zero news vectors, so the news modality carries no signal. Tests are fully synthetic (generated in-code) and need no data files.
+Table shapes match the old CSVs, so explicit CSV paths still work as overrides everywhere. The DB has article tables but no embedding vectors — when no embedding CSV is given, the builder substitutes all-zero news vectors, so the news modality carries no signal. Tests read the SQLite DB (encoder/builder/pipeline) or are fully synthetic (generated in-code).
 
 ## Dev notebook
 
