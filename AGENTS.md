@@ -8,7 +8,7 @@ This repo is **one notebook**: `notebooks/development.ipynb` holds config, the S
 ## Commands (uv, Python 3.12, uv.lock)
 
 - Setup: `uv sync --extra dev` (ruff is the only dev dep; `uv.lock` is the single source of truth).
-- Run: `uv run jupyter execute notebooks/development.ipynb --inplace` (verified clean — 10 code cells, all pass; needs `python3` kernelspec: `uv run python -m ipykernel install --user --name python3`). Reads `database/main_database.db` when present, else a synthetic seed-42 fallback.
+- Run: `uv run jupyter execute notebooks/development.ipynb --inplace` (verified clean — 8 code cells, all pass; needs `python3` kernelspec: `uv run python -m ipykernel install --user --name python3`). Reads `database/main_database.db` when present, else a synthetic seed-42 fallback.
 - Lint: `uv run ruff check .` — clean. `ruff format` is NOT enforced.
 
 ## Settings
