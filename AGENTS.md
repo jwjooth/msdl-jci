@@ -7,19 +7,18 @@ This branch (`refactor`) is a mid-migration simplification: there is no `data/`,
 ## Commands (uv, Python 3.12, uv.lock)
 
 - Setup: `uv sync --extra dev`. `ruff` and `mypy` live in the `dev` optional-dependency, so plain `uv sync` does NOT put them on PATH. `uv.lock` is the single source of truth (`requirements.txt` was removed).
-- Test: `uv run pytest -q`. **Currently RED on this branch: 10 collection errors** — `tests/` and `dataset_builder.py` import `Settings`/`get_settings`, but `src/msdl_jci/config/settings.py` only provides the DB-only `Config` (known refactor gap, fix pending).
-- Lint: `uv run ruff check .` — advisory only (CI runs it with `--exit-zero`). Known findings: 2× `I001` import-sort plus 2× `F821` (`get_settings` used in `models/macro/encoder.py`, same refactor gap as above). `ruff format` is NOT enforced (16 files would be reformatted).
-- Typecheck: `uv run mypy src` — **non-blocking** in CI; only a small subset is checked (`config/`, `evaluation/`, `experiments/`, `utils/`, `models/fusion.py`; most of `models/` and tests are excluded).
-- Run: `uv run msdl-jci --mode {proposed,ablation,legacy} --epochs N`, or `uv run msdl-jci-ablation`. (Blocked by the same `get_settings` gap until the config refactor lands.)
-- Notebooks: `uv run jupyter execute notebooks/development.ipynb --inplace` (verified clean — 8 code cells, all pass; needs `python3` kernelspec: `uv run python -m ipykernel install --user --name python3`).
-- Settings: `src/msdl_jci/config/settings.py` is a minimal DB-only `Config` (`DATABASE_PATH` default `./database/main_database.db`, `LOG_LEVEL` default `INFO`). `.env` and `database/` are git-ignored.
+- Test: `uv run pytest -q`. **34 passed / 7 failed** — every failure is a missing `data/raw/` CSV (`FileNotFoundError`); no data ships on this branch. Imports and collection are green since `Settings`/`get_settings` were restored.
+- Lint: `uv run ruff check .` — clean. Advisory only in CI (`--exit-zero`). `ruff format` is NOT enforced.
+- Typecheck: `uv run mypy src` — clean (18 files). **Non-blocking** in CI; only a small subset is checked (`config/`, `evaluation/`, `experiments/`, `utils/`, `models/fusion.py`; most of `models/` and tests are excluded).
+- Run: `uv run msdl-jci --mode {proposed,ablation,legacy} --epochs N`, or `uv run msdl-jci-ablation`. (Needs `data/raw/` CSVs, absent here.)
+- Notebooks: `uv run jupyter execute notebooks/development.ipynb --inplace` (verified clean — 8 code cells, all pass; needs `python3` kernelspec: `uv run python -m ipykernel install --user --name python3`). It is the only notebook; the stale `01_*`/`app.ipynb` were deleted.
+- Settings: `src/msdl_jci/config/settings.py` provides `Config` (DB: `DATABASE_PATH` default `./database/main_database.db`, `LOG_LEVEL` default `INFO`) plus `Settings`/`get_settings()` (paths + ML defaults: lookback 28, horizon 5, 768-d news). `BASE_DIR` is the project root. `.env` and `database/` are git-ignored.
 
 ## Data (what is actually here)
 
 - There is **no `data/` directory** on this branch — no raw CSVs, no embeddings, no sample files.
 - Tests are fully synthetic (generated in-code). `tests/conftest.py` adds `src/` to `sys.path`.
-- `notebooks/development.ipynb` is self-contained: it mirrors the builder logic and runs a synthetic smoke demo (train-only scaling, windowed tensors). No raw files needed.
-- `notebooks/01_data_alignment_example.ipynb` and `notebooks/app.ipynb` are **stale here** — they read `data/raw/` and `reports/`/`data/processed/`, which do not exist on this branch.
+- `notebooks/development.ipynb` is self-contained and the only notebook: it mirrors the builder logic and runs a synthetic smoke demo (train-only scaling, windowed tensors). No raw files needed.
 - The news fallback still applies wherever the builder runs: when `daily_news_embeddings.csv` is absent, that modality is all-zero vectors with no signal.
 
 ## Leak-free methodology — do not "fix" these
@@ -32,6 +31,6 @@ This branch (`refactor`) is a mid-migration simplification: there is no `data/`,
 
 ## Simplification notes (this branch)
 
-- Removed: `.idea/` (IDE config), `requirements.txt` (redundant with `uv.lock`), regenerable caches (`__pycache__/`, `.pytest_cache/`, `.ruff_cache/`).
+- Removed: `.idea/` (IDE config), `requirements.txt` (redundant with `uv.lock`), stale `01_*`/`app.ipynb` notebooks (needed `data/`/`reports/` that don't exist here), dead `scripts/`/`data/`/`reports/`/`scraping/`/`preprocessing/` entries in ruff/mypy config, regenerable caches (`__pycache__/`, `.pytest_cache/`, `.ruff_cache/`).
 - CI (`.github/workflows/ci.yml`): single `uv sync --frozen --extra dev`; dropped the broken `uv pip install -r .\requirements.txt` step (Windows path, redundant) and the failing `ruff format --check` step. Lint is advisory, mypy non-blocking, pytest reporting.
-- Kept (untouched, your call): `.coderabbit.yaml` (untracked bot config), `database/main_database.db` (git-ignored, unused by the pipeline), stale `01_*`/`app.ipynb` notebooks.
+- Kept (untouched, your call): `.coderabbit.yaml` (untracked bot config), `database/main_database.db` (git-ignored, unused by the pipeline).

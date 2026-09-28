@@ -18,7 +18,7 @@ Deployment Status: Research/thesis defense only. Not for live trading.
 - **Learned:** the bottleneck is data signal (stale macro, sparse news, weak technical edge at t+5), not engineering.
 - **Useful:** evaluation methodology, diagnostic suite, and honest negative evidence. LSTM + Macro retained as research baseline only; nothing is deployable.
 
-> Branch note (`refactor`): this branch is a mid-migration simplification. The test suite is currently RED (config refactor gap — see AGENTS.md) and no `data/` ships with it. Nothing here runs end-to-end yet.
+> Branch note (`refactor`): simplification branch — no `data/` ships with it, so the 7 failing tests are all missing-CSV `FileNotFoundError`s (34 pass). The only runnable artifact is `notebooks/development.ipynb` (self-contained synthetic demo).
 
 ## Key results
 
@@ -108,7 +108,7 @@ When the news embedding file is absent, the builder substitutes all-zero news ve
 uv run jupyter execute notebooks/development.ipynb --inplace
 ```
 
-`notebooks/01_data_alignment_example.ipynb` and `notebooks/app.ipynb` are stale on this branch — they read `data/raw/` and `reports/`/`data/processed/`, which do not exist here.
+It is the only notebook; the stale `01_*`/`app.ipynb` were deleted.
 
 ## Limitations and risks
 
