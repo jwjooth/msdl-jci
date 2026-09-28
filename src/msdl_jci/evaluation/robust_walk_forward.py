@@ -80,47 +80,77 @@ def run_robust_walk_forward(
     set_all_seeds(seed)
     n = len(tensors.y)
     splits = expanding_window_splits(n, n_folds=n_folds, embargo=embargo)
-    logger.info("Robust WF: %d folds for %s (n=%d, embargo=%d)", len(splits), model_name, n, embargo)
+    logger.info(
+        "Robust WF: %d folds for %s (n=%d, embargo=%d)", len(splits), model_name, n, embargo
+    )
 
     fold_results: list[FoldResult] = []
     for i, (tr_end, v_start, v_end, te_start, te_end) in enumerate(splits):
         logger.info(
             "Fold %d: train[:%d] val[%d:%d] test[%d:%d]",
-            i + 1, tr_end, v_start, v_end, te_start, te_end,
+            i + 1,
+            tr_end,
+            v_start,
+            v_end,
+            te_start,
+            te_end,
         )
         train_ds = MultiSourceTorchDataset(
-            tensors.X_tech[:tr_end], tensors.X_macro[:tr_end], tensors.X_news[:tr_end],
-            tensors.y[:tr_end], tensors.returns_5d[:tr_end],
+            tensors.X_tech[:tr_end],
+            tensors.X_macro[:tr_end],
+            tensors.X_news[:tr_end],
+            tensors.y[:tr_end],
+            tensors.returns_5d[:tr_end],
         )
         val_ds = MultiSourceTorchDataset(
-            tensors.X_tech[v_start:v_end], tensors.X_macro[v_start:v_end],
-            tensors.X_news[v_start:v_end], tensors.y[v_start:v_end],
+            tensors.X_tech[v_start:v_end],
+            tensors.X_macro[v_start:v_end],
+            tensors.X_news[v_start:v_end],
+            tensors.y[v_start:v_end],
             tensors.returns_5d[v_start:v_end],
         )
         test_ds = MultiSourceTorchDataset(
-            tensors.X_tech[te_start:te_end], tensors.X_macro[te_start:te_end],
-            tensors.X_news[te_start:te_end], tensors.y[te_start:te_end],
+            tensors.X_tech[te_start:te_end],
+            tensors.X_macro[te_start:te_end],
+            tensors.X_news[te_start:te_end],
+            tensors.y[te_start:te_end],
             tensors.returns_5d[te_start:te_end],
         )
         model = model_fn()
         _, probs, weights, best_thr, history = train_single_split(
-            model, train_ds, val_ds, test_ds,
-            epochs=epochs, batch_size=batch_size, lr=lr, patience=patience,
-            seed=seed + i, use_class_weight=use_class_weight, verbose=False,
+            model,
+            train_ds,
+            val_ds,
+            test_ds,
+            epochs=epochs,
+            batch_size=batch_size,
+            lr=lr,
+            patience=patience,
+            seed=seed + i,
+            use_class_weight=use_class_weight,
+            verbose=False,
         )
         clf = compute_classification_metrics(tensors.y[te_start:te_end], probs, threshold=best_thr)
         fin = simulate_trading_strategy(
-            probs, tensors.returns_5d[te_start:te_end],
-            dates=tensors.dates[te_start:te_end], threshold=best_thr,
+            probs,
+            tensors.returns_5d[te_start:te_end],
+            dates=tensors.dates[te_start:te_end],
+            threshold=best_thr,
         )
         res = EvaluationResults(
-            model_name=f"{model_name} [fold {i+1}]",
-            classification_metrics=clf, financial_metrics=fin,
-            predictions=probs, actuals=tensors.y[te_start:te_end],
+            model_name=f"{model_name} [fold {i + 1}]",
+            classification_metrics=clf,
+            financial_metrics=fin,
+            predictions=probs,
+            actuals=tensors.y[te_start:te_end],
             test_dates=tensors.dates[te_start:te_end],
-            gating_weights=weights, best_threshold=best_thr, history=history,
+            gating_weights=weights,
+            best_threshold=best_thr,
+            history=history,
         )
-        fold_results.append(FoldResult(i + 1, (0, tr_end), (v_start, v_end), (te_start, te_end), res))
+        fold_results.append(
+            FoldResult(i + 1, (0, tr_end), (v_start, v_end), (te_start, te_end), res)
+        )
 
     def _collect(attr_fn: Callable[[EvaluationResults], float]) -> np.ndarray:
         return np.array([attr_fn(f.result) for f in fold_results], dtype=float)
@@ -139,7 +169,10 @@ def run_robust_walk_forward(
         }
 
     roc_stat, bal_stat, mcc_stat, shr_stat = (
-        _stats(aucs), _stats(balacc), _stats(mccs), _stats(sharpes),
+        _stats(aucs),
+        _stats(balacc),
+        _stats(mccs),
+        _stats(sharpes),
     )
     summary: dict[str, object] = {
         "model": model_name,
@@ -152,9 +185,14 @@ def run_robust_walk_forward(
     }
     logger.info(
         "Robust WF %s: AUC=%.4f±%.4f balAcc=%.4f±%.4f MCC=%.4f±%.4f Sharpe=%.3f±%.3f",
-        model_name, roc_stat["mean"], roc_stat["std"],
-        bal_stat["mean"], bal_stat["std"],
-        mcc_stat["mean"], mcc_stat["std"],
-        shr_stat["mean"], shr_stat["std"],
+        model_name,
+        roc_stat["mean"],
+        roc_stat["std"],
+        bal_stat["mean"],
+        bal_stat["std"],
+        mcc_stat["mean"],
+        mcc_stat["std"],
+        shr_stat["mean"],
+        shr_stat["std"],
     )
     return summary

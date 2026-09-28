@@ -27,9 +27,7 @@ class MacroPipeline:
         """
         settings = get_settings()
         bi_path = bi_rate_csv if bi_rate_csv is not None else settings.BI_RATE_CSV
-        inflation_path = (
-            inflation_csv if inflation_csv is not None else settings.INFLATION_CSV
-        )
+        inflation_path = inflation_csv if inflation_csv is not None else settings.INFLATION_CSV
         kurs_path = kurs_csv if kurs_csv is not None else settings.KURS_CSV
 
         return self.encoder.fit_and_encode(

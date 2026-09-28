@@ -20,9 +20,7 @@ def read_numeric_series(
     df = pd.read_csv(path_obj)
 
     if column_name not in df.columns:
-        raise KeyError(
-            f"Column '{column_name}' not found. Available: {list(df.columns)}"
-        )
+        raise KeyError(f"Column '{column_name}' not found. Available: {list(df.columns)}")
 
     if remove_symbol:
         cleaned = (

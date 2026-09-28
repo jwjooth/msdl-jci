@@ -62,21 +62,30 @@ class FocalLoss(nn.Module):
 
     def forward(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         bce = nn.functional.binary_cross_entropy_with_logits(
-            logits, targets, pos_weight=self.pos_weight, reduction="none")
+            logits, targets, pos_weight=self.pos_weight, reduction="none"
+        )
         pt = torch.exp(-bce.clamp_min(1e-9))
         return ((1.0 - pt) ** self.gamma * bce).mean()
 
 
-def make_criterion(loss: str = "bce", pos_weight: torch.Tensor | None = None,
-                   label_smoothing: float = 0.0, focal_gamma: float = 2.0) -> nn.Module:
+def make_criterion(
+    loss: str = "bce",
+    pos_weight: torch.Tensor | None = None,
+    label_smoothing: float = 0.0,
+    focal_gamma: float = 2.0,
+) -> nn.Module:
     """Build training criterion. Targets smoothed only if label_smoothing > 0."""
     if loss == "focal":
         mod = FocalLoss(gamma=focal_gamma, pos_weight=pos_weight)
         mod.smooth = float(label_smoothing)
         return mod
-    base = (nn.BCEWithLogitsLoss(pos_weight=pos_weight)
-            if pos_weight is not None else nn.BCEWithLogitsLoss())
+    base = (
+        nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+        if pos_weight is not None
+        else nn.BCEWithLogitsLoss()
+    )
     if label_smoothing > 0.0:
+
         class _Smooth(nn.Module):
             def __init__(self, inner, eps):
                 super().__init__()
@@ -85,6 +94,7 @@ def make_criterion(loss: str = "bce", pos_weight: torch.Tensor | None = None,
             def forward(self, logits, targets):
                 t = targets * (1 - 2 * self.eps) + self.eps
                 return self.inner(logits, t)
+
         return _Smooth(base, label_smoothing)
     return base
 
@@ -142,7 +152,9 @@ class MultiSourceTorchDataset(Dataset):
     def __len__(self) -> int:
         return len(self.y)
 
-    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    def __getitem__(
+        self, idx: int
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         return (
             self.X_tech[idx],
             self.X_macro[idx],
@@ -159,11 +171,11 @@ class EvaluationResults:
     model_name: str
     classification_metrics: ClassificationMetrics
     financial_metrics: FinancialMetrics
-    predictions: np.ndarray          # Predicted probabilities [N_test]
-    actuals: np.ndarray              # Ground truth labels [N_test]
-    test_dates: np.ndarray           # Dates of test period [N_test]
+    predictions: np.ndarray  # Predicted probabilities [N_test]
+    actuals: np.ndarray  # Ground truth labels [N_test]
+    test_dates: np.ndarray  # Dates of test period [N_test]
     gating_weights: np.ndarray | None = None  # [N_test, 3] if model produces weights
-    best_threshold: float = 0.5      # Val-optimized decision threshold
+    best_threshold: float = 0.5  # Val-optimized decision threshold
     history: list[dict] | None = field(default=None)  # Per-epoch diagnostics
 
 
@@ -179,9 +191,7 @@ def _predict_probs(
     all_labels: list[float] = []
     with torch.no_grad():
         for b_tech, b_macro, b_news, b_y, _ in loader:
-            logits, weights = model(
-                b_tech.to(device), b_macro.to(device), b_news.to(device)
-            )
+            logits, weights = model(b_tech.to(device), b_macro.to(device), b_news.to(device))
             probs = torch.sigmoid(logits).cpu().numpy().flatten()
             all_probs.extend(probs)
             all_labels.extend(b_y.cpu().numpy().flatten())
@@ -239,16 +249,15 @@ def train_single_split(
     # Deterministic shuffling via generator seed.
     g = torch.Generator()
     g.manual_seed(seed)
-    train_loader = DataLoader(
-        train_dataset, batch_size=batch_size, shuffle=True, generator=g
-    )
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, generator=g)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
     # --- Class weighting from TRAIN ONLY (prevents always-positive collapse) ---
     if use_class_weight:
         pos_weight = compute_pos_weight(
-            train_dataset.y.cpu().numpy() if torch.is_tensor(train_dataset.y)
+            train_dataset.y.cpu().numpy()
+            if torch.is_tensor(train_dataset.y)
             else np.asarray(train_dataset.y)
         ).to(device)
         logger.info("BCE pos_weight (train neg/pos): %.4f", float(pos_weight.cpu()))
@@ -263,8 +272,7 @@ def train_single_split(
     if loss_name == "focal":
         criterion = FocalLoss(gamma=focal_gamma, pos_weight=pos_weight)
     elif label_smoothing > 0.0:
-        criterion = make_criterion("bce", pos_weight,
-                                   label_smoothing=label_smoothing)
+        criterion = make_criterion("bce", pos_weight, label_smoothing=label_smoothing)
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode="min", factor=0.5, patience=4
@@ -301,9 +309,7 @@ def train_single_split(
                 if callable(aux_fn):
                     try:
                         aux = aux_fn(b_tech, b_macro, b_news)  # [B,3]
-                        aux_loss = criterion(
-                            aux, b_y.expand(-1, aux.shape[1])
-                        )
+                        aux_loss = criterion(aux, b_y.expand(-1, aux.shape[1]))
                         loss = loss + aux_lambda * aux_loss
                     except RuntimeError:
                         pass
@@ -349,7 +355,11 @@ def train_single_split(
         val_probs = np.array(val_probs_list)
         val_labels = np.array(val_labels_list, dtype=int)
         try:
-            val_auc = float(roc_auc_score(val_labels, val_probs)) if len(np.unique(val_labels)) > 1 else 0.5
+            val_auc = (
+                float(roc_auc_score(val_labels, val_probs))
+                if len(np.unique(val_labels)) > 1
+                else 0.5
+            )
         except ValueError:
             val_auc = 0.5
         try:
@@ -364,7 +374,10 @@ def train_single_split(
         except ValueError:
             val_mcc = 0.0
         pos_ratio = float(np.mean(val_probs >= 0.5)) if len(val_probs) else 0.0
-        prob_mean, prob_std = float(np.mean(val_probs)) if len(val_probs) else 0.0, float(np.std(val_probs)) if len(val_probs) else 0.0
+        prob_mean, prob_std = (
+            float(np.mean(val_probs)) if len(val_probs) else 0.0,
+            float(np.std(val_probs)) if len(val_probs) else 0.0,
+        )
         if val_w_list:
             gw = np.vstack(val_w_list)
             gate_mean = [float(np.mean(gw[:, i])) for i in range(gw.shape[1])]
@@ -394,15 +407,26 @@ def train_single_split(
             logger.info(
                 "Epoch %02d/%d | train_loss=%.4f val_loss=%.4f | val_auc=%.4f "
                 "val_balacc=%.4f val_mcc=%.4f pos_ratio=%.3f p_mean=%.4f p_std=%.4f | grad=%.4f ent=%.3f gates=%s",
-                epoch, epochs, train_loss, val_loss, val_auc, val_bal_acc, val_mcc,
-                pos_ratio, prob_mean, prob_std, avg_grad_norm, gate_entropy,
+                epoch,
+                epochs,
+                train_loss,
+                val_loss,
+                val_auc,
+                val_bal_acc,
+                val_mcc,
+                pos_ratio,
+                prob_mean,
+                prob_std,
+                avg_grad_norm,
+                gate_entropy,
                 [round(x, 3) for x in gate_mean] if gate_mean else "n/a",
             )
         # Collapse warning: near-constant predictions are a training failure.
         if prob_std < 0.01 and epoch >= 5 and verbose:
             logger.warning(
                 "Possible model collapse at epoch %d: val prob std=%.5f (near-constant output)",
-                epoch, prob_std,
+                epoch,
+                prob_std,
             )
 
         improved = False
@@ -460,9 +484,12 @@ def train_single_split(
     if len(test_probs):
         logger.info(
             "Test probs: mean=%.4f std=%.4f min=%.4f max=%.4f pos_ratio@0.5=%.3f pos_ratio@opt=%.3f",
-            float(np.mean(test_probs)), float(np.std(test_probs)),
-            float(np.min(test_probs)), float(np.max(test_probs)),
-            float(np.mean(test_probs >= 0.5)), float(np.mean(test_probs >= best_thr)),
+            float(np.mean(test_probs)),
+            float(np.std(test_probs)),
+            float(np.min(test_probs)),
+            float(np.max(test_probs)),
+            float(np.mean(test_probs >= 0.5)),
+            float(np.mean(test_probs >= best_thr)),
         )
         if float(np.std(test_probs)) < 0.01:
             logger.warning(
@@ -526,8 +553,11 @@ def evaluate_model_walk_forward(
         "Split sizes for %s: Train=%d, Val=[%d:%d]=%d, Test=[%d:]=%d (Total=%d, embargo=%d)",
         model_name,
         train_cut,
-        val_start, val_cut, max(val_cut - val_start, 0),
-        test_start, n_samples - test_start,
+        val_start,
+        val_cut,
+        max(val_cut - val_start, 0),
+        test_start,
+        n_samples - test_start,
         n_samples,
         embargo,
     )

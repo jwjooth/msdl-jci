@@ -9,14 +9,24 @@ from msdl_jci.utils.dataset_builder import MultiSourceDatasetBuilder
 def _labeled_df(n=100, seed=1):
     rng = np.random.default_rng(seed)
     dates = pd.date_range("2021-01-01", periods=n, freq="B")
-    df = pd.DataFrame({
-        "Date": dates,
-        "Close": 100 + np.cumsum(rng.normal(0, 1, size=n)),
-        "Volume": 1e6, "RSI_14": 50.0, "MACD": 0.1,
-        "MACD_Signal": 0.05, "ATR_14": 2.0, "SMA_20": 100.0,
-        "bi_rate": 5.0, "inflation_rate": 3.0, "usd_idr": 15000.0,
-        "future_close": 0.0, "return_5d": 0.01, "target_direction": 1.0,
-    })
+    df = pd.DataFrame(
+        {
+            "Date": dates,
+            "Close": 100 + np.cumsum(rng.normal(0, 1, size=n)),
+            "Volume": 1e6,
+            "RSI_14": 50.0,
+            "MACD": 0.1,
+            "MACD_Signal": 0.05,
+            "ATR_14": 2.0,
+            "SMA_20": 100.0,
+            "bi_rate": 5.0,
+            "inflation_rate": 3.0,
+            "usd_idr": 15000.0,
+            "future_close": 0.0,
+            "return_5d": 0.01,
+            "target_direction": 1.0,
+        }
+    )
     for i in range(4):
         df[f"emb_{i}"] = rng.normal(0, 1, size=n)
     df["target_direction"] = (rng.uniform(0, 1, n) > 0.46).astype(float)
@@ -74,10 +84,12 @@ def test_pos_weight_uses_train_only():
 def test_news_date_no_future_leak():
     # News merge is on exact Date (how='left'), never forward-looking.
     trade = pd.DataFrame({"Date": pd.to_datetime(["2020-01-06", "2020-01-07"])})
-    news = pd.DataFrame({
-        "Date": pd.to_datetime(["2020-01-06"]),
-        "emb_0": [0.5],
-    })
+    news = pd.DataFrame(
+        {
+            "Date": pd.to_datetime(["2020-01-06"]),
+            "emb_0": [0.5],
+        }
+    )
     merged = pd.merge(trade, news, on="Date", how="left")
     assert merged["emb_0"].iloc[1] != 0.5 or True  # missing day must not copy future/past embedding
     assert pd.isna(merged["emb_0"].iloc[1])

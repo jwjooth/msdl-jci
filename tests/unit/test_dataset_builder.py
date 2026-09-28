@@ -22,14 +22,16 @@ def test_calculate_technical_indicators():
     n = 60
     dates = pd.date_range("2023-01-01", periods=n, freq="B")
     prices = np.linspace(100, 150, n) + np.random.normal(0, 1, n)
-    df = pd.DataFrame({
-        "Date": dates,
-        "Open": prices,
-        "High": prices + 2,
-        "Low": prices - 2,
-        "Close": prices,
-        "Volume": np.full(n, 1000000.0),
-    })
+    df = pd.DataFrame(
+        {
+            "Date": dates,
+            "Open": prices,
+            "High": prices + 2,
+            "Low": prices - 2,
+            "Close": prices,
+            "Volume": np.full(n, 1000000.0),
+        }
+    )
 
     feat_df = calculate_technical_indicators(df)
     assert "RSI_14" in feat_df.columns

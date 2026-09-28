@@ -12,6 +12,7 @@ from msdl_jci.utils.logging_config import configure_logging, get_logger
 
 logger = get_logger("msdl_jci.main")
 
+
 def run_proposed_deep_learning_pipeline(epochs: int = 40, seed: int = 42) -> int:
     """Train and evaluate the proposed Adaptive Soft Gating Multi-Source Model."""
     import numpy as np
@@ -37,9 +38,7 @@ def run_proposed_deep_learning_pipeline(epochs: int = 40, seed: int = 42) -> int
 
     logger.info("Training proposed model on %d chronological samples...", len(tensors.y))
     result = evaluate_model_walk_forward(
-        model_fn=lambda: AdaptiveSoftGatingFusionModel(
-            pos_rate=pos_rate, modality_dropout=0.05
-        ),
+        model_fn=lambda: AdaptiveSoftGatingFusionModel(pos_rate=pos_rate, modality_dropout=0.05),
         model_name="Proposed Model (Adaptive Soft Gating)",
         tensors=tensors,
         epochs=epochs,
@@ -59,6 +58,7 @@ def run_proposed_deep_learning_pipeline(epochs: int = 40, seed: int = 42) -> int
 
     if result.gating_weights is not None:
         import numpy as np
+
         mean_w = np.mean(result.gating_weights, axis=0)
         logger.info("--- Average Dynamic Soft Gating Weights ---")
         logger.info("  Technical alpha (LSTM)     : %.4f (%.1f%%)", mean_w[0], mean_w[0] * 100)

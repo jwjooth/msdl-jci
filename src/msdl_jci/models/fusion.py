@@ -13,7 +13,6 @@ Implements the exact model architectures specified in Table 5 and Section 2.4:
    - StaticFusionModel (Technical + Macro + News without Soft Gating)
 """
 
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -233,8 +232,10 @@ class AdaptiveSoftGatingFusionModel(nn.Module):
 
         total_dim = tech_hidden_dim + macro_latent_dim + news_proj_dim  # 144
         self.soft_gating = SoftGatingNetwork(
-            input_dim=total_dim, num_experts=3,
-            temperature=temperature, min_weight=min_weight,
+            input_dim=total_dim,
+            num_experts=3,
+            temperature=temperature,
+            min_weight=min_weight,
         )
 
         # Per-branch normalization before gating (prevent scale dominance).
@@ -257,6 +258,7 @@ class AdaptiveSoftGatingFusionModel(nn.Module):
         # Calibrated init: bias = logit(pos_rate) so initial p ≈ base rate.
         if pos_rate is not None and 0.0 < pos_rate < 1.0:
             import math
+
             out_layer = self.classifier[-1]
             if isinstance(out_layer, nn.Linear):
                 with torch.no_grad():
@@ -287,17 +289,17 @@ class AdaptiveSoftGatingFusionModel(nn.Module):
             logits: [batch_size, 1] raw prediction logits
             weights: [batch_size, 3] dynamic gating weights (alpha, beta, gamma)
         """
-        h_tech = self.norm_tech(self._maybe_drop_modality(self.tech_branch(x_tech)))      # [B, 64]
-        h_macro = self.norm_macro(self._maybe_drop_modality(self.macro_branch(x_macro)))    # [B, 16]
-        h_news = self.norm_news(self._maybe_drop_modality(self.news_branch(x_news)))      # [B, 64]
+        h_tech = self.norm_tech(self._maybe_drop_modality(self.tech_branch(x_tech)))  # [B, 64]
+        h_macro = self.norm_macro(self._maybe_drop_modality(self.macro_branch(x_macro)))  # [B, 16]
+        h_news = self.norm_news(self._maybe_drop_modality(self.news_branch(x_news)))  # [B, 64]
 
         h_concat = torch.cat([h_tech, h_macro, h_news], dim=1)  # [B, 144]
 
         # Dynamic gating weights: alpha, beta, gamma
         weights = self.soft_gating(h_concat)  # [B, 3]
-        alpha = weights[:, 0:1]               # [B, 1]
-        beta = weights[:, 1:2]                # [B, 1]
-        gamma = weights[:, 2:3]               # [B, 1]
+        alpha = weights[:, 0:1]  # [B, 1]
+        beta = weights[:, 1:2]  # [B, 1]
+        gamma = weights[:, 2:3]  # [B, 1]
 
         # Gated representation
         h_gated = torch.cat([alpha * h_tech, beta * h_macro, gamma * h_news], dim=1)  # [B, 144]
@@ -317,13 +319,15 @@ class AdaptiveSoftGatingFusionModel(nn.Module):
         h_tech = self.norm_tech(self.tech_branch(x_tech))
         h_macro = self.norm_macro(self.macro_branch(x_macro))
         h_news = self.norm_news(self.news_branch(x_news))
-        return torch.cat([self.aux_tech(h_tech), self.aux_macro(h_macro),
-                          self.aux_news(h_news)], dim=1)
+        return torch.cat(
+            [self.aux_tech(h_tech), self.aux_macro(h_macro), self.aux_news(h_news)], dim=1
+        )
 
 
 # ==============================================================================
 # ABLATION STUDY BASELINE MODELS (Thesis Section 2.6)
 # ==============================================================================
+
 
 class PureLSTMModel(nn.Module):
     """Baseline 1: Pure LSTM on technical features only."""
