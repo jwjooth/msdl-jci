@@ -9,56 +9,21 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
-    "beautifulsoup4==4.15.0",
-    "feedparser>=6.0.14",
-    "httpx==1.0.dev3",
     "ipykernel>=7.3.0",
     "matplotlib>=3.11.1",
     "numpy==2.5.3",
     "pandas>=2.2.0",
-    "pandas-stubs~=3.0.5",
-    "psycopg2-binary>=2.9.0",
-    "pytest>=9.1.1",
-    "pytest-cov>=7.1.0",
     "python-dotenv==1.2.3",
     "scikit-learn>=1.4.0",
-    "scipy>=1.10.0",
-    "seaborn>=0.13.2",
-    "sqlalchemy==2.0.52",
-    "torch>=2.14.0",
-    "yfinance==1.7.0",
 ]
 
 [project.optional-dependencies]
-dev = ["ruff>=0.8.0", "mypy>=1.10.0", "pre-commit>=3.0.0", "tabulate>=0.9.0"]
-
-[project.scripts]
-msdl-jci = "msdl_jci.main:main"
-msdl-jci-ablation = "msdl_jci.experiments.run_ablation:main"
-
-[build-system]
-requires = ["uv_build>=0.12.1,<0.13.0"]
-build-backend = "uv_build"
+dev = ["ruff>=0.8.0"]
 
 [tool.uv]
-package = true
+package = false
 
 [tool.ruff]
 target-version = "py312"
 line-length = 100
-extend-exclude = [".venv", "notebooks"]
-
-[tool.ruff.lint]
-select = ["E", "F", "I", "W", "UP", "B"]
-ignore = ["E501"]
-
-[tool.mypy]
-python_version = "3.12"
-ignore_missing_imports = true
-exclude = ["\\.venv/", "notebooks/", "tests/", "src/msdl_jci/models/macro/",
-           "src/msdl_jci/models/technical/", "src/msdl_jci/models/news/"]
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-addopts = "-q"
-filterwarnings = ["ignore::UserWarning"]
+extend-exclude = [".venv"]
