@@ -39,10 +39,11 @@ MSDL-JCI/
 ```bash
 uv sync --extra dev
 cp .env.example .env  # optional: defaults work without it
+uv run python -m ipykernel install --user --name python3
 uv run jupyter execute notebooks/development.ipynb --inplace
 ```
 
-`uv.lock` is the single source of truth. First run needs a `python3` kernelspec: `uv run python -m ipykernel install --user --name python3`.
+`uv.lock` is the single source of truth.
 
 ## Data requirements
 
