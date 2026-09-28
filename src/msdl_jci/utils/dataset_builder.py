@@ -17,6 +17,7 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 
 from msdl_jci.config.settings import get_settings
+from msdl_jci.utils.data_loader import load_frame
 from msdl_jci.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -163,13 +164,14 @@ class MultiSourceDatasetBuilder:
 
     def load_raw_macro_data(
         self,
-        bi_rate_path: str | Path,
-        inflation_path: str | Path,
-        kurs_path: str | Path,
+        bi_rate_path: str | Path | pd.DataFrame | None = None,
+        inflation_path: str | Path | pd.DataFrame | None = None,
+        kurs_path: str | Path | pd.DataFrame | None = None,
     ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-        """Load and parse raw macroeconomic data tables."""
+        """Load and parse raw macroeconomic data tables (CSV/frame, else SQLite)."""
+        db_path = get_settings().SQLITE_DB_PATH
         # 1. BI Rate
-        df_bi = pd.read_csv(bi_rate_path)
+        df_bi = load_frame(bi_rate_path, "bi_rate", db_path)
         bi_col = "BI-7Day-RR" if "BI-7Day-RR" in df_bi.columns else df_bi.columns[-1]
         period_col = "Period" if "Period" in df_bi.columns else df_bi.columns[1]
         df_bi["Date"] = parse_indonesian_date(df_bi[period_col])
@@ -179,7 +181,7 @@ class MultiSourceDatasetBuilder:
         df_bi = df_bi.dropna(subset=["Date"]).sort_values("Date")[["Date", "bi_rate"]].copy()
 
         # 2. Inflation Data
-        df_inf = pd.read_csv(inflation_path)
+        df_inf = load_frame(inflation_path, "inflation_data", db_path)
         inf_col = "Data Inflasi" if "Data Inflasi" in df_inf.columns else df_inf.columns[-1]
         inf_pcol = "Periode" if "Periode" in df_inf.columns else df_inf.columns[0]
         df_inf["Date"] = parse_indonesian_date(df_inf[inf_pcol], day_first=False)
@@ -191,7 +193,7 @@ class MultiSourceDatasetBuilder:
         )
 
         # 3. Kurs USD/IDR
-        df_kurs = pd.read_csv(kurs_path)
+        df_kurs = load_frame(kurs_path, "kurs_usdidr", db_path)
         df_kurs["Date"] = pd.to_datetime(df_kurs["Date"], errors="coerce")
         df_kurs["usd_idr"] = pd.to_numeric(
             df_kurs["Close"].astype(str).str.replace(",", "", regex=False),
@@ -211,22 +213,18 @@ class MultiSourceDatasetBuilder:
     ) -> pd.DataFrame:
         """Merge all modalities into a synchronized master dataframe."""
         settings = get_settings()
-        jci_path = jci_csv or settings.JCI_HISTORICAL_CSV
-        bi_path = bi_rate_csv or settings.BI_RATE_CSV
-        inf_path = inflation_csv or settings.INFLATION_CSV
-        kurs_path = kurs_csv or settings.KURS_CSV
-        news_path = news_emb_csv or settings.DAILY_NEWS_EMBEDDINGS_CSV
+        db_path = settings.SQLITE_DB_PATH
 
         # 1. Technical Data (JCI OHLCV)
-        logger.info("Loading JCI technical data from %s", jci_path)
-        df_jci = pd.read_csv(jci_path)
+        logger.info("Loading JCI technical data from %s", jci_csv or "jci_historical table")
+        df_jci = load_frame(jci_csv, "jci_historical", db_path)
         df_jci["Date"] = pd.to_datetime(df_jci["Date"], errors="coerce")
         df_jci = df_jci.dropna(subset=["Date", "Close"]).sort_values("Date").reset_index(drop=True)
         df_tech = calculate_technical_indicators(df_jci)
 
         # 2. Macroeconomic Data Alignment (Forward-fill LOCF)
         logger.info("Aligning macroeconomic data via forward-fill...")
-        df_bi, df_inf, df_kurs = self.load_raw_macro_data(bi_path, inf_path, kurs_path)
+        df_bi, df_inf, df_kurs = self.load_raw_macro_data(bi_rate_csv, inflation_csv, kurs_csv)
 
         # Merge onto trading dates calendar
         df_master = pd.merge(df_tech, df_kurs, on="Date", how="left")
@@ -266,9 +264,10 @@ class MultiSourceDatasetBuilder:
         df_master["target_direction"] = target_dir
 
         # 4. Financial News Embeddings Alignment (768-dim Frozen IndoBERT)
-        if Path(news_path).exists():
-            logger.info("Loading precomputed IndoBERT embeddings from %s", news_path)
-            df_news = pd.read_csv(news_path)
+        # No embeddings table in SQLite -> explicit CSV merges, else zero vectors.
+        if news_emb_csv is not None:
+            logger.info("Loading precomputed IndoBERT embeddings from %s", news_emb_csv)
+            df_news = pd.read_csv(news_emb_csv)
             df_news = df_news.rename(columns={"trade_date": "Date"})
             df_news["Date"] = pd.to_datetime(df_news["Date"], format="%Y-%m-%d", errors="coerce")
             df_news = df_news.copy()
@@ -278,7 +277,7 @@ class MultiSourceDatasetBuilder:
             # Thesis Section 2.3: Zero-vector representation for days without news
             df_master[emb_cols] = df_master[emb_cols].fillna(0.0)
         else:
-            logger.warning("News embeddings file %s not found. Creating zero vectors.", news_path)
+            logger.warning("No news embeddings table. Creating zero vectors.")
             emb_cols = [f"emb_{i}" for i in range(settings.NEWS_EMB_DIM)]
             zeros_df = pd.DataFrame(0.0, index=df_master.index, columns=emb_cols)
             df_master = pd.concat([df_master, zeros_df], axis=1)

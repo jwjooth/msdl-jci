@@ -10,27 +10,9 @@ BASE_DIR = Path(__file__).resolve().parents[3]
 load_dotenv(BASE_DIR / ".env")
 
 
-class Config:
-    _raw_db_path = os.getenv("DATABASE_PATH", "./database/main_database.db")
-
-    if Path(_raw_db_path).is_absolute():
-        DB_FULL_PATH = Path(_raw_db_path)
-    else:
-        DB_FULL_PATH = BASE_DIR / _raw_db_path
-
-    LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
-
-    @classmethod
-    def get_db_url(cls) -> str:
-        return f"sqlite:///{cls.DB_FULL_PATH}"
-
-    @classmethod
-    def validate_db_exists(cls):
-        if not cls.DB_FULL_PATH.exists():
-            raise FileNotFoundError(
-                f"Database file not found at {cls.DB_FULL_PATH}\n"
-                f"Check your '.env' file or ensure the './database/' folder exists."
-            )
+# Single source of truth for the SQLite file (env wins, else repo-local default).
+_raw_db_path = Path(os.getenv("DATABASE_PATH", "database/main_database.db"))
+_SQLITE_DB_PATH = _raw_db_path if _raw_db_path.is_absolute() else BASE_DIR / _raw_db_path
 
 
 @dataclass(frozen=True)
@@ -46,11 +28,7 @@ class Settings:
     DATA_RAW_DIR: Path = BASE_DIR / "data" / "raw"
     DATA_PROCESSED_DIR: Path = BASE_DIR / "data" / "processed"
 
-    JCI_HISTORICAL_CSV: Path = BASE_DIR / "data" / "raw" / "jci_historical.csv"
-    BI_RATE_CSV: Path = BASE_DIR / "data" / "raw" / "bi_rate.csv"
-    INFLATION_CSV: Path = BASE_DIR / "data" / "raw" / "inflation_data.csv"
-    KURS_CSV: Path = BASE_DIR / "data" / "raw" / "kurs_usdidr.csv"
-    DAILY_NEWS_EMBEDDINGS_CSV: Path = BASE_DIR / "data" / "processed" / "daily_news_embeddings.csv"
+    SQLITE_DB_PATH: Path = _SQLITE_DB_PATH
 
     ML_LOOK_BACK: int = int(os.getenv("ML_LOOK_BACK", "28"))
     ML_PREDICTION_HORIZON: int = int(os.getenv("ML_PREDICTION_HORIZON", "5"))

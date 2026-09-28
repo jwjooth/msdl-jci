@@ -5,7 +5,6 @@ from pathlib import Path
 import numpy as np
 from numpy.typing import NDArray
 
-from msdl_jci.config.settings import get_settings
 from msdl_jci.models.technical.encoder import TechnicalDataEncoder
 
 
@@ -20,7 +19,5 @@ class TechnicalPipeline:
         price_csv: str | Path | None = None,
         column_name: str = "Close",
     ) -> NDArray[np.float64]:
-        """Train model and return predictions, using Settings default path if omitted."""
-        settings = get_settings()
-        target_path = price_csv if price_csv is not None else settings.JCI_HISTORICAL_CSV
-        return self.encoder.fit_and_predict(target_path, column_name=column_name)
+        """Train model and return predictions (SQLite table when omitted)."""
+        return self.encoder.fit_and_predict(price_csv, column_name=column_name)

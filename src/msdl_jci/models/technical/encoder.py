@@ -10,6 +10,7 @@ from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import MinMaxScaler
 
 from msdl_jci.config.settings import get_settings
+from msdl_jci.utils.data_loader import load_frame
 from msdl_jci.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -32,24 +33,20 @@ class TechnicalDataEncoder:
 
     def fit_and_predict(
         self,
-        csv_path: str | Path,
+        csv_path: str | Path | None = None,
         column_name: str = "Close",
     ) -> NDArray[np.float64]:
         """Train model on historical price series and return predictions."""
-        logger.info("Training JCI Historical Price model from %s...", csv_path)
+        logger.info("Training JCI Historical Price model from %s...", csv_path or "jci table")
         self.price_result = self._train_price_series(csv_path, column_name=column_name)
         return self.price_result.predictions
 
     def _train_price_series(
         self,
-        csv_path: str | Path,
+        csv_path: str | Path | None = None,
         column_name: str = "Close",
     ) -> TrainedPriceResult:
-        path_obj = Path(csv_path)
-        if not path_obj.exists():
-            raise FileNotFoundError(f"File not found at: {path_obj}")
-
-        df = pd.read_csv(path_obj)
+        df = load_frame(csv_path, "jci_historical", get_settings().SQLITE_DB_PATH)
         if "Date" in df.columns:
             df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
             df = df.dropna(subset=["Date", column_name]).sort_values("Date")

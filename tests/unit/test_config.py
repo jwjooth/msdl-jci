@@ -13,12 +13,7 @@ def test_settings_singleton():
 def test_settings_paths_exist():
     settings = get_settings()
     assert settings.ROOT_DIR.exists()
-    assert settings.DATA_DIR.exists()
-    assert settings.DATA_RAW_DIR.exists()
-    assert settings.BI_RATE_CSV.exists()
-    assert settings.INFLATION_CSV.exists()
-    assert settings.KURS_CSV.exists()
-    assert settings.JCI_HISTORICAL_CSV.exists()
+    assert settings.SQLITE_DB_PATH.exists()
 
 
 def test_settings_hyperparameters():
