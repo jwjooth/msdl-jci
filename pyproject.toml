@@ -46,21 +46,16 @@ package = true
 [tool.ruff]
 target-version = "py312"
 line-length = 100
-extend-exclude = [".venv", "notebooks", "data", "reports"]
+extend-exclude = [".venv", "notebooks"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W", "UP", "B"]
 ignore = ["E501"]
 
-[tool.ruff.lint.per-file-ignores]
-# Diagnostic/audit scripts: sys.path bootstrap + factory lambdas are idiomatic here.
-"scripts/*.py" = ["E402", "E731", "B007", "B023", "B905"]
-
 [tool.mypy]
 python_version = "3.12"
 ignore_missing_imports = true
-exclude = ["\\.venv/", "notebooks/", "reports/", "tests/", "src/msdl_jci/scraping/",
-           "src/msdl_jci/preprocessing/", "src/msdl_jci/models/macro/",
+exclude = ["\\.venv/", "notebooks/", "tests/", "src/msdl_jci/models/macro/",
            "src/msdl_jci/models/technical/", "src/msdl_jci/models/news/"]
 
 [tool.pytest.ini_options]
