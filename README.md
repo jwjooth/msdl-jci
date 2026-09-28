@@ -67,6 +67,18 @@ Shipped without: raw/processed data, `docs/`, `reports/`, `scripts/`, `configs/`
 
 ## Quickstart
 
+Pytest creates a temporary SQLite database with synthetic data automatically;
+no local database is needed to run tests.
+
+Before running either training command below, obtain a populated copy of
+`main_database.db` from the project maintainer and place it at
+`database/main_database.db` (create the `database/` directory first). Alternatively,
+set `DATABASE_PATH` in your shell or `.env` to an existing populated SQLite file.
+The database is git-ignored and is not included in a fresh checkout; this branch
+has no data download or import script. Required table columns are listed in
+`ENTITY_TABLES` in `src/msdl_jci/utils/data_loader.py`. An empty SQLite file is
+not sufficient.
+
 ```bash
 uv sync --extra dev
 cp .env.example .env  # optional: defaults work without it
@@ -96,7 +108,7 @@ database/main_database.db   # jci_historical, bi_rate, inflation_data, kurs_usdi
                             # + cnbc/detik/kontan_ihsg_articles
 ```
 
-Table shapes match the old CSVs, so explicit CSV paths still work as overrides everywhere. The DB has article tables but no embedding vectors — when no embedding CSV is given, the builder substitutes all-zero news vectors, so the news modality carries no signal. Tests read the SQLite DB (encoder/builder/pipeline) or are fully synthetic (generated in-code).
+Table shapes match the old CSVs, so explicit CSV paths still work as overrides everywhere. The DB has article tables but no embedding vectors — when no embedding CSV is given, the builder substitutes all-zero news vectors, so the news modality carries no signal. Tests use a temporary SQLite DB seeded with synthetic rows (encoder/builder/pipeline) or synthetic DataFrames generated in-code; they do not read the contributor’s database.
 
 ## Dev notebook
 
