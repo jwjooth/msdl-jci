@@ -8,7 +8,6 @@ Implements the exact methodology described in Sections 2.1 - 2.3 of the thesis:
 5. Zero-leakage sliding window tensor generation (Lookback=28)
 """
 
-import warnings
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -18,40 +17,10 @@ from sklearn.preprocessing import MinMaxScaler
 
 from msdl_jci.config.settings import get_settings
 from msdl_jci.utils.data_loader import load_frame
+from msdl_jci.utils.data_loader import parse_indonesian_date as parse_indonesian_date
 from msdl_jci.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
-
-MONTH_MAP = {
-    "januari": "01",
-    "jan": "01",
-    "februari": "02",
-    "feb": "02",
-    "maret": "03",
-    "mar": "03",
-    "april": "04",
-    "apr": "04",
-    "mei": "05",
-    "may": "05",
-    "juni": "06",
-    "jun": "06",
-    "juli": "07",
-    "jul": "07",
-    "agustus": "08",
-    "agu": "08",
-    "aug": "08",
-    "september": "09",
-    "sep": "09",
-    "oktober": "10",
-    "okt": "10",
-    "oct": "10",
-    "november": "11",
-    "nov": "11",
-    "desember": "12",
-    "des": "12",
-    "dec": "12",
-}
-
 
 @dataclass
 class MultiSourceTensors:
@@ -73,16 +42,6 @@ class MultiSourceTensors:
     close_prices: np.ndarray
     # Feature column names for interpretability
     tech_feature_cols: list[str]
-
-
-def parse_indonesian_date(series: pd.Series, day_first: bool = True) -> pd.Series:
-    """Parse Indonesian text date strings into pandas datetime series."""
-    s = series.astype(str).str.strip().str.lower()
-    for id_month, num_month in MONTH_MAP.items():
-        s = s.str.replace(id_month, num_month, regex=False)
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        return pd.to_datetime(s, errors="coerce", dayfirst=day_first)
 
 
 def calculate_technical_indicators(

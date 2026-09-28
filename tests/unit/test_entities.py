@@ -1,4 +1,4 @@
-"""Entity-table contract: code mapping matches database/main_database.db."""
+"""Entity-table contract: code mapping matches an independent synthetic schema."""
 
 from msdl_jci.config.settings import get_settings
 from msdl_jci.utils.data_loader import ENTITY_TABLES, read_sqlite_table

@@ -1,6 +1,7 @@
 """CSV and SQLite data loading helpers."""
 
 import sqlite3
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -20,17 +21,59 @@ ENTITY_TABLES: dict[str, tuple[str, ...]] = {
 }
 
 
+MONTH_MAP = {
+    "januari": "01",
+    "jan": "01",
+    "februari": "02",
+    "feb": "02",
+    "maret": "03",
+    "mar": "03",
+    "april": "04",
+    "apr": "04",
+    "mei": "05",
+    "may": "05",
+    "juni": "06",
+    "jun": "06",
+    "juli": "07",
+    "jul": "07",
+    "agustus": "08",
+    "agu": "08",
+    "aug": "08",
+    "september": "09",
+    "sep": "09",
+    "oktober": "10",
+    "okt": "10",
+    "oct": "10",
+    "november": "11",
+    "nov": "11",
+    "desember": "12",
+    "des": "12",
+    "dec": "12",
+}
+
+
+def parse_indonesian_date(series: pd.Series, day_first: bool = True) -> pd.Series:
+    """Parse Indonesian text date strings into pandas datetime series."""
+    s = series.astype(str).str.strip().str.lower()
+    for id_month, num_month in MONTH_MAP.items():
+        s = s.str.replace(id_month, num_month, regex=False)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        return pd.to_datetime(s, errors="coerce", dayfirst=day_first)
+
+
 def read_sqlite_table(table_name: str, db_path: str | Path) -> pd.DataFrame:
     """Read a whole SQLite table into a DataFrame, validated against ENTITY_TABLES."""
     # ponytail: stdlib sqlite3, not SQLAlchemy — single-file DB, no server, no ORM gain.
     # Upgrade path: sqlalchemy.create_engine if this ever needs pools/concurrency.
+    if table_name not in ENTITY_TABLES:
+        raise ValueError(f"Unknown table: {table_name!r}")
+    expected = ENTITY_TABLES[table_name]
     with sqlite3.connect(Path(db_path)) as con:
         df = pd.read_sql_query(f"SELECT * FROM [{table_name}]", con)
-    expected = ENTITY_TABLES.get(table_name)
-    if expected is not None:
-        missing = [c for c in expected if c not in df.columns]
-        if missing:
-            raise ValueError(f"Table [{table_name}] missing columns {missing}: {list(df.columns)}")
+    missing = [c for c in expected if c not in df.columns]
+    if missing:
+        raise ValueError(f"Table [{table_name}] missing columns {missing}: {list(df.columns)}")
     return df
 
 
@@ -87,8 +130,19 @@ def read_sqlite_series(
     db_path: str | Path,
     remove_symbol: str = "",
 ) -> NDArray[np.float64]:
-    """Read a numeric series from a SQLite table with automatic symbol stripping."""
+    """Read a numeric series, sorting macro tables by their parsed dates."""
     df = read_sqlite_table(table_name, db_path)
+    date_column = {"bi_rate": "Period", "inflation_data": "Periode", "kurs_usdidr": "Date"}.get(
+        table_name
+    )
+    if date_column is not None:
+        if table_name == "kurs_usdidr":
+            df[date_column] = pd.to_datetime(df[date_column], errors="coerce")
+        else:
+            df[date_column] = parse_indonesian_date(
+                df[date_column], day_first=table_name == "bi_rate"
+            )
+        df = df.sort_values(date_column, kind="stable")
 
     if column_name not in df.columns:
         raise KeyError(f"Column '{column_name}' not found. Available: {list(df.columns)}")
