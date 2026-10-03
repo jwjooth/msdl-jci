@@ -1,6 +1,6 @@
 # MSDL-JCI
 
-Thesis research repo: predict JCI (t+5) direction from technical + macro + news. 
+Thesis research repo: predict JCI (t+5) direction from technical + macro + news.
 Implements the hybrid architecture from the thesis defense: **LSTM (technical) + MLP Encoder (macro) + Frozen IndoBERT (news) + Adaptive MLP Fusion (Soft Gating Network)**.
 
 This repo is **one notebook**: `notebooks/development.ipynb` holds config, the SQLite entity contract, all utilities, the model architecture, the run, visualizations, and checks. There is no `src/`, `tests/`, `.github/`, `data/`, `scripts/`, `reports/`, `configs/`, `Makefile`, or `Dockerfile`.
@@ -8,7 +8,7 @@ This repo is **one notebook**: `notebooks/development.ipynb` holds config, the S
 ## Commands (uv, Python 3.12, uv.lock)
 
 - Setup: `uv sync --extra dev` (ruff is the only dev dep; `uv.lock` is the single source of truth).
-- Run: `uv run jupyter execute notebooks/development.ipynb --inplace` (verified clean — 8 code cells, all pass; needs `python3` kernelspec: `uv run python -m ipykernel install --user --name python3`). Reads `database/main_database.db` when present, else a synthetic seed-42 fallback.
+- Run: `uv run jupyter execute notebooks/development.ipynb --inplace` (verified clean — 22 cells, 14 code cells, 0 errors; needs `python3` kernelspec: `uv run python -m ipykernel install --user --name python3`). Reads `database/main_database.db` when present, else a synthetic seed-42 fallback.
 - Lint: `uv run ruff check .` — clean. `ruff format` is NOT enforced.
 
 ## Settings
@@ -20,7 +20,17 @@ The notebook's `Config` cell owns hyperparameters (Table 5). `DATABASE_PATH` env
 ## Data (what is actually here)
 
 - Source of truth is SQLite: `database/main_database.db` (git-ignored). Entity contract lives in `ENTITY_TABLES` (notebook cell) and is enforced on every read: `jci_historical`, `bi_rate`, `inflation_data`, `kurs_usdidr` plus `cnbc_ihsg_articles`, `detik_ihsg_articles`, `kontan_ihsg_articles`.
-- The news fallback still applies: the DB has article tables but no embedding vectors, so that modality is all-zero vectors with no signal.
+- News carries no signal: the DB has article tables but no embedding vectors — `emb_*` columns are zero-filled and the run feeds all-zero `news_ids`, so the IndoBERT branch sees padding-embedding input only.
+
+## Current result: rigorous negative result
+
+Last executed run is degenerate and matches the pyproject description ("closed as rigorous negative result"):
+
+- Walk-forward (5 splits): mean AUC ≈ 0.15, acc ≈ 0.26, F1 ≈ 0.38; each fold's test set is tiny (n=1..5).
+- Gating collapses: α=β=0.0, γ=1.0 on every fold (Softmax mass lands entirely on the news branch).
+- Predictions hover at ≈ 0.526 for both UP and DOWN classes — no directional signal.
+
+Do not treat these numbers as a bug in the architecture; the leak-free checks cell passes.
 
 ## Leak-free methodology — do not "fix" these
 
@@ -41,5 +51,11 @@ The notebook's `Config` cell owns hyperparameters (Table 5). `DATABASE_PATH` env
 
 - Walk-forward expanding window validation (5 splits)
 - Metrics: AUC, Accuracy, F1-Score (binary classification)
-- Baseline comparison: pure LSTM on technical features only
-- Ablation: macro-only, news-only, static fusion vs adaptive gating
+- Per-fold metrics bar chart, gating-weights (α, β, γ) evolution + distribution, ROC curves, confusion matrices, prediction-vs-actual timeline, confidence histogram
+
+## Known notebook warts
+
+- Cells 2 and 3 are a duplicated "Config & hyperparameters" markdown cell (identical text) — safe to delete one.
+- Cell 0 claims AUC/F1/Sharpe metrics; only AUC/Accuracy/F1 are computed.
+- LSTM emits a dropout/num_layers=1 UserWarning on every run (dropout=0.2 with a single-layer LSTM) — harmless, by design.
+
