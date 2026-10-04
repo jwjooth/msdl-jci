@@ -13,7 +13,7 @@ This repo is **one notebook**: `notebooks/development.ipynb` holds config, the S
 
 ## Settings
 
-The notebook's `Config` cell owns hyperparameters (Table 5). `DATABASE_PATH` env var wins, default `./database/main_database.db`. ML defaults: lookback 28, horizon 5, seed 42, projection_dim 64, lstm_dim 64, hidden_layers (32, 16), fusion_input_dim 144, fusion_output_dim 3. `.env` and `database/` are git-ignored; copy `.env.example` → `.env` only if you need to override.
+The notebook's `Config` cell owns hyperparameters (Table 5). `DATABASE_PATH` env var wins, default `./database/main_database.db`. ML defaults: lookback 28, horizon 5, seed 42, projection_dim 64, lstm_dim 64, hidden_layers (32, 16), fusion_input_dim 144, fusion_output_dim 3. Malformed `ML_HIDDEN_LAYERS` values and inconsistent fusion dimensions fail fast at import. `.env` and `database/` are git-ignored; copy `.env.example` → `.env` only if you need to override.
 
 **New dependencies**: `torch>=2.4.0`, `transformers>=4.41.0` for the thesis model architecture.
 
@@ -22,15 +22,9 @@ The notebook's `Config` cell owns hyperparameters (Table 5). `DATABASE_PATH` env
 - Source of truth is SQLite: `database/main_database.db` (git-ignored). Entity contract lives in `ENTITY_TABLES` (notebook cell) and is enforced on every read: `jci_historical`, `bi_rate`, `inflation_data`, `kurs_usdidr` plus `cnbc_ihsg_articles`, `detik_ihsg_articles`, `kontan_ihsg_articles`.
 - News carries no signal: the DB has article tables but no embedding vectors — `emb_*` columns are zero-filled and the run feeds all-zero `news_ids`, so the IndoBERT branch sees padding-embedding input only.
 
-## Current result: rigorous negative result
+## Current implementation status
 
-Last executed run is degenerate and matches the pyproject description ("closed as rigorous negative result"):
-
-- Walk-forward (5 splits): mean AUC ≈ 0.15, acc ≈ 0.26, F1 ≈ 0.38; each fold's test set is tiny (n=1..5).
-- Gating collapses: α=β=0.0, γ=1.0 on every fold (Softmax mass lands entirely on the news branch).
-- Predictions hover at ≈ 0.526 for both UP and DOWN classes — no directional signal.
-
-Do not treat these numbers as a bug in the architecture; the leak-free checks cell passes.
+The configuration now matches Table 5. Do not use the previous degenerate walk-forward numbers as a final thesis conclusion: evaluation behavior and the news branch are being corrected separately in issues #21 and #22.
 
 ## Leak-free methodology — do not "fix" these
 

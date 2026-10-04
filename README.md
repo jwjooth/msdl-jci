@@ -3,7 +3,7 @@
 Predicting Indonesia Composite Index (t+5) direction from technical, macroeconomic, and news modalities — implements the **thesis defense architecture**.
 
 ```text
-Research Status: Thesis-aligned implementation; rigorous negative result — walk-forward AUC ≈ 0.15, gating collapses to news (γ=1.0).
+Research Status: Configuration aligned with Table 5. Evaluation conclusions are pending issues #21 and #22.
 Proposed Model: LSTM + MLP Encoder + Frozen IndoBERT + Adaptive MLP Fusion (Soft Gating).
 Deployment Status: Research/thesis defense only. Not for live trading.
 ```
