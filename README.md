@@ -3,7 +3,7 @@
 Predicting Indonesia Composite Index (t+5) direction from technical, macroeconomic, and news modalities — implements the **thesis defense architecture**.
 
 ```text
-Research Status: Thesis-aligned implementation; rigorous negative result — walk-forward AUC ≈ 0.15, gating collapses to news (γ=1.0).
+Research Status: Thesis-aligned implementation, honestly trained — walk-forward pooled AUC ≈ 0.51 (per-fold 0.48–0.62), tech-dominated gating.
 Proposed Model: LSTM + MLP Encoder + Frozen IndoBERT + Adaptive MLP Fusion (Soft Gating).
 Deployment Status: Research/thesis defense only. Not for live trading.
 ```
@@ -14,7 +14,7 @@ This repo is a **single Jupyter notebook**: `notebooks/development.ipynb` contai
 
 | Component | Specification |
 |---|---|
-| Frozen IndoBERT | `csebuetnlp/mubi-bert-base` (12L, 12H, 768D, frozen) |
+| Frozen IndoBERT | `indobenchmark/indobert-base-p1` (frozen CLS, precomputed + cached) |
 | Projection | Linear (768 → 64) |
 | LSTM Branch | Hidden=64, Lookback=28, Dropout=0.2 |
 | MLP Encoder | 2 layers (3→32→16), ReLU |
@@ -51,7 +51,7 @@ database/main_database.db   # jci_historical, bi_rate, inflation_data, kurs_usdi
                              # + cnbc/detik/kontan_ihsg_articles
 ```
 
-Absent DB → the notebook runs a synthetic seed-42 fallback instead. The DB has article tables but no embedding vectors — emb_* columns are zero-filled and the run feeds all-zero news_ids, so the news branch carries no signal.
+Absent DB → the notebook runs a synthetic seed-42 fallback instead. News vectors come from detik articles (2018–2025) embedded once with frozen IndoBERT and cached to `database/news_emb_cache.npz`, attached past-only; CNBC/Kontan articles are dated 2026 (past JCI end) and excluded.
 
 ## Evaluation methodology
 
