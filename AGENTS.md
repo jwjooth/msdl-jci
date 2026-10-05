@@ -9,6 +9,7 @@ This repo is **one notebook**: `notebooks/development.ipynb` holds config, the S
 
 - Setup: `uv sync --extra dev` (ruff is the only dev dep; `uv.lock` is the single source of truth).
 - Run: `uv run jupyter execute notebooks/development.ipynb --inplace` (verified clean — 0 errors; needs `python3` kernelspec: `uv run python -m ipykernel install --user --name python3`). Reads `database/main_database.db` (tracked in git) when present, else a synthetic seed-42 fallback. First run downloads `indobenchmark/indobert-base-p1` and caches article vectors to `database/news_emb_cache.npz`.
+- Official frozen run for thesis Ch.4: tag `v1.0-bab4` (commit `5df1c9c`). Numbers quoted below are that tag. Later experiments (E1–E3) live on top — do not quote post-tag numbers as Bab-4 results.
 - Lint: `uv run ruff check .` — clean. `ruff format` is NOT enforced.
 
 ## Settings
@@ -51,8 +52,12 @@ Do not treat these numbers as a bug in the architecture; the leak-free checks ce
 
 ## Evaluation (thesis methodology)
 
-- Walk-forward expanding window validation (5 splits)
-- Metrics: AUC, Accuracy, F1-Score (binary classification)
+- Walk-forward expanding window validation (`TimeSeriesSplit` n=5, 304 samples/fold, train-fit scalers per fold)
+- Per-fold training: fresh model, Adam 1e-3, weighted BCE, early stopping (max100/patience8, 10% val split), learning curves stored in `wf_metrics["learning_curves"]`
+- Metrics: AUC, Accuracy, F1-Score + trading sim (prob>0.5 → hold 5d, no costs): Sharpe, MDD, win-rate vs buy-hold
+- Ablation variants (`StockModel.VARIANTS`): `lstm`, `lstm_macro`, `lstm_news`, `static` (mean fusion), `full` + E1 control `lstm_news_shuffled`
+- Experiments on top of v1.0-bab4: E1 shuffled-news control, E2 learning curves, E3 `news_agg="last"` vs thesis mean-pooling (`wf_metrics["news_agg_last"]`)
+- E1–E3 outcomes (2026-10-05, post-tag — NOT Bab-4 numbers): E1 `lstm_news` AUC 0.504 vs shuffled 0.511 → news is noise, gate not lazy. E2 stops at 9–17 epochs, train/val loss ≈ 0.59–0.65 (near chance 0.69) → signal exhausted, not underfit. E3 last-vs-mean AUC 0.514 vs 0.514 → aggregation irrelevant, no thesis change needed.
 - Per-fold metrics bar chart, gating-weights (α, β, γ) evolution + distribution, ROC curves, confusion matrices, prediction-vs-actual timeline, confidence histogram
 
 ## Known notebook warts
@@ -60,4 +65,9 @@ Do not treat these numbers as a bug in the architecture; the leak-free checks ce
 - Cells 2 and 3 are a duplicated "Config & hyperparameters" markdown cell (identical text) — safe to delete one.
 - Cell 0 claims AUC/F1/Sharpe metrics; only AUC/Accuracy/F1 are computed.
 - LSTM emits a dropout/num_layers=1 UserWarning on every run (dropout=0.2 with a single-layer LSTM) — harmless, by design.
+
+## Open GitHub issues (thesis reminders)
+
+- #36 `thesis:` fix §2.1 corpus claim — CNBC (229) + Kontan (646) articles are 100% dated 2026; only detik (5863, 2018–2025) informs training. Re-scrape with archive crawl or rewrite §2.1 as detik-primary.
+- #37 `thesis:` write full IndoBERT ID `indobenchmark/indobert-base-p1` (12L/12H/768, frozen CLS, mean-pool, 768→64) into Table 5. Never cite `csebuetnlp/mubi-bert-base` (does not exist on HF).
 

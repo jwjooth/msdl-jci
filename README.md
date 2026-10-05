@@ -3,7 +3,7 @@
 Predicting Indonesia Composite Index (t+5) direction from technical, macroeconomic, and news modalities — implements the **thesis defense architecture**.
 
 ```text
-Research Status: Thesis-aligned implementation, honestly trained — walk-forward pooled AUC ≈ 0.51 (per-fold 0.48–0.62), tech-dominated gating.
+Research Status: Thesis-aligned, honestly trained — frozen official run v1.0-bab4: pooled AUC ≈ 0.51, no variant/market edge. Post-tag experiments (E1–E3) explore gate laziness, learning curves, news aggregation.
 Proposed Model: LSTM + MLP Encoder + Frozen IndoBERT + Adaptive MLP Fusion (Soft Gating).
 Deployment Status: Research/thesis defense only. Not for live trading.
 ```
@@ -55,8 +55,9 @@ Absent DB → the notebook runs a synthetic seed-42 fallback instead. News vecto
 
 ## Evaluation methodology
 
-- Walk-forward expanding window validation (5 splits)
-- Metrics: AUC, Accuracy, F1-Score (binary classification)
+- Walk-forward validation, 5 splits × 304 samples, per-fold training (Adam, weighted BCE, early stopping)
+- Metrics: AUC, Accuracy, F1 + trading sim (Sharpe, MDD, win-rate vs buy-hold)
+- Ablation: `lstm` / `lstm_macro` / `lstm_news` / `static` / `full` (+ shuffled-news control, learning curves, news-aggregation experiment)
 - Per-fold metrics, gating-weight (α, β, γ) evolution/distribution, ROC, confusion matrices, prediction-vs-actual, confidence plots
 
 ## Limitations and risks
