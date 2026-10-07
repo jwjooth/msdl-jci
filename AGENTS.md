@@ -63,7 +63,6 @@ Do not treat these numbers as a bug in the architecture; the leak-free checks ce
 
 ## Known notebook warts
 
-- Cells 2 and 3 are a duplicated "Config & hyperparameters" markdown cell (identical text) — safe to delete one.
 - Cell 0 claims AUC/F1/Sharpe metrics; only AUC/Accuracy/F1 are computed.
 - LSTM emits a dropout/num_layers=1 UserWarning on every run (dropout=0.2 with a single-layer LSTM) — harmless, by design.
 

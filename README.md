@@ -27,7 +27,7 @@ This repo is a **single Jupyter notebook**: `notebooks/development.ipynb` contai
 MSDL-JCI/
 ├─ notebooks/development.ipynb   # the whole project (config → utils → model → run → viz → checks)
 ├─ database/main_database.db     # SQLite source of truth (git-ignored, not shipped)
-├─ pyproject.toml uv.lock .python-version .env.example
+├─ pyproject.toml uv.lock .python-version
 ├─ AGENTS.md README.md
 ```
 
@@ -35,7 +35,6 @@ MSDL-JCI/
 
 ```bash
 uv sync --extra dev
-cp .env.example .env  # optional: defaults work without it
 uv run python -m ipykernel install --user --name python3
 uv run jupyter execute notebooks/development.ipynb --inplace
 ```
@@ -44,7 +43,7 @@ uv run jupyter execute notebooks/development.ipynb --inplace
 
 ## Data requirements
 
-Single SQLite file (git-ignored, `DATABASE_PATH` env overrides):
+Single SQLite file (tracked in git):
 
 ```text
 database/main_database.db   # jci_historical, bi_rate, inflation_data, kurs_usdidr
