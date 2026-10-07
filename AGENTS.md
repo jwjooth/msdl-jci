@@ -58,6 +58,7 @@ Do not treat these numbers as a bug in the architecture; the leak-free checks ce
 - Ablation variants (`StockModel.VARIANTS`): `lstm`, `lstm_macro`, `lstm_news`, `static` (mean fusion), `full` + E1 control `lstm_news_shuffled`
 - Experiments on top of v1.0-bab4: E1 shuffled-news control, E2 learning curves, E3 `news_agg="last"` vs thesis mean-pooling (`wf_metrics["news_agg_last"]`)
 - E1–E3 outcomes (2026-10-05, post-tag — NOT Bab-4 numbers): E1 `lstm_news` AUC 0.504 vs shuffled 0.511 → news is noise, gate not lazy. E2 stops at 9–17 epochs, train/val loss ≈ 0.59–0.65 (near chance 0.69) → signal exhausted, not underfit. E3 last-vs-mean AUC 0.514 vs 0.514 → aggregation irrelevant, no thesis change needed.
+- Optimization round 1–5 (post-tag — NOT Bab-4 numbers): (1) per-fold Youden-J thresholds, per-class F1 in fold metrics; pooled acc/F1 still at 0.5. (2) focal AUC 0.5025 < BCE 0.5136 → keep BCE. (3) paired ΔAUC 95% CIs all cross 0 → no variant significantly better. (4) epoch-0 grad norms lstm 0.003 / mlp 0.009 / news 0.086 / gate+head 0.033 → gradients alive everywhere, gate's news shutdown is learned. (5) lookback×LR grid: 28/1e-3 best (0.5136); 14 → 0.5028, 56 → 0.4946 → Table 5 defaults confirmed. Tracked in #38.
 - Per-fold metrics bar chart, gating-weights (α, β, γ) evolution + distribution, ROC curves, confusion matrices, prediction-vs-actual timeline, confidence histogram
 
 ## Known notebook warts
@@ -70,4 +71,5 @@ Do not treat these numbers as a bug in the architecture; the leak-free checks ce
 
 - #36 `thesis:` fix §2.1 corpus claim — CNBC (229) + Kontan (646) articles are 100% dated 2026; only detik (5863, 2018–2025) informs training. Re-scrape with archive crawl or rewrite §2.1 as detik-primary.
 - #37 `thesis:` write full IndoBERT ID `indobenchmark/indobert-base-p1` (12L/12H/768, frozen CLS, mean-pool, 768→64) into Table 5. Never cite `csebuetnlp/mubi-bert-base` (does not exist on HF).
+- #38 `thesis:` report Youden-J thresholds + paired ΔAUC CIs in §2.7/Ch.4; use grad audit (news grad alive, gate shutdown is learned) for RQ2 discussion. Focal/grid were negative — no thesis change.
 
