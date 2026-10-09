@@ -3,7 +3,7 @@
 Predicting Indonesia Composite Index (t+5) direction from technical, macroeconomic, and news modalities — implements the **thesis defense architecture**.
 
 ```text
-Research Status: Thesis-aligned, honestly trained — frozen official run v1.0-bab4: pooled AUC ≈ 0.51, no variant/market edge. Post-tag experiments (E1–E3) explore gate laziness, learning curves, news aggregation.
+Research Status: Thesis-aligned, honestly trained — post-rescrape run (2026-10-09, 3-portal archive corpus): pooled AUC ≈ 0.50, no variant/market edge. Experiments E1–E3 + optimization round + behavioral analyses (gate-vs-ATR, COVID split, ECE) included.
 Proposed Model: LSTM + MLP Encoder + Frozen IndoBERT + Adaptive MLP Fusion (Soft Gating).
 Deployment Status: Research/thesis defense only. Not for live trading.
 ```
@@ -26,7 +26,7 @@ This repo is a **single Jupyter notebook**: `notebooks/development.ipynb` contai
 ```text
 MSDL-JCI/
 ├─ notebooks/development.ipynb   # the whole project (config → utils → model → run → viz → checks)
-├─ database/main_database.db     # SQLite source of truth (git-ignored, not shipped)
+├─ database/main_database.db     # SQLite source of truth (tracked in git)
 ├─ pyproject.toml uv.lock .python-version
 ├─ AGENTS.md README.md
 ```
@@ -50,14 +50,14 @@ database/main_database.db   # jci_historical, bi_rate, inflation_data, kurs_usdi
                              # + cnbc/detik/kontan_ihsg_articles
 ```
 
-Absent DB → the notebook runs a synthetic seed-42 fallback instead. News vectors come from detik articles (2018–2025) embedded once with frozen IndoBERT and cached to `database/news_emb_cache.npz`, attached past-only; CNBC/Kontan articles are dated 2026 (past JCI end) and excluded.
+Absent DB → the notebook runs a synthetic seed-42 fallback instead. News vectors come from a 3-portal archive corpus (detik 4953 + cnbc 5556 + kontan 9883 usable, 2018–2025) embedded once with frozen IndoBERT and cached to `database/news_emb_cache.npz`, attached past-only (weekend → Monday).
 
 ## Evaluation methodology
 
 - Walk-forward validation, 5 splits × 304 samples, per-fold training (Adam, weighted BCE, early stopping)
 - Metrics: AUC, Accuracy, F1 + trading sim (Sharpe, MDD, win-rate vs buy-hold)
 - Ablation: `lstm` / `lstm_macro` / `lstm_news` / `static` / `full` (+ shuffled-news control, learning curves, news-aggregation experiment)
-- Per-fold metrics, gating-weight (α, β, γ) evolution/distribution, ROC, confusion matrices, prediction-vs-actual, confidence plots
+- Per-fold metrics, gating-weight (α, β, γ) evolution/distribution, ROC, confusion matrices, prediction-vs-actual, confidence plots, gate-vs-volatility, COVID-vs-rest split, ECE calibration
 
 ## Limitations and risks
 

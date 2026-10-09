@@ -1,74 +1,36 @@
 # MSDL-JCI
 
-Thesis research repo: predict JCI (t+5) direction from technical + macro + news.
-Implements the hybrid architecture from the thesis defense: **LSTM (technical) + MLP Encoder (macro) + Frozen IndoBERT (news) + Adaptive MLP Fusion (Soft Gating Network)**.
+Thesis repo: predict JCI direction (t+5) via **LSTM (technical) + MLP (macro) + frozen IndoBERT (news) + soft-gating fusion**. Not for live trading.
 
-This repo is **one notebook**: `notebooks/development.ipynb` holds config, the SQLite entity contract, all utilities, the model architecture, the run, visualizations, and checks. There is no `src/`, `tests/`, `.github/`, `data/`, `scripts/`, `reports/`, `configs/`, `Makefile`, or `Dockerfile`.
+The whole project is **one notebook**: `notebooks/development.ipynb` (config → utils → model → run → viz → checks). No `src/`, tests, or scripts.
 
-## Commands (uv, Python 3.12, uv.lock)
+## Commands
 
-- Setup: `uv sync --extra dev` (ruff is the only dev dep; `uv.lock` is the single source of truth).
-- Run: `uv run jupyter execute notebooks/development.ipynb --inplace` (verified clean — 0 errors; needs `python3` kernelspec: `uv run python -m ipykernel install --user --name python3`). Reads `database/main_database.db` (tracked in git) when present, else a synthetic seed-42 fallback. First run downloads `indobenchmark/indobert-base-p1` and caches article vectors to `database/news_emb_cache.npz`.
-- Official frozen run for thesis Ch.4: tag `v1.0-bab4` (commit `5df1c9c`). Numbers quoted below are that tag. Later experiments (E1–E3) live on top — do not quote post-tag numbers as Bab-4 results.
+- Setup: `uv sync --extra dev` (`uv.lock` is source of truth; Python 3.12; ruff is the only dev dep).
+- Run: `uv run jupyter execute notebooks/development.ipynb --inplace` (needs `python3` kernelspec: `uv run python -m ipykernel install --user --name python3`). First run downloads `indobenchmark/indobert-base-p1` and writes `database/news_emb_cache.npz`.
 - Lint: `uv run ruff check .` — clean. `ruff format` is NOT enforced.
+- No test suite; the notebook's `## Checks` cell (train-prefix scaler proof, shapes, finiteness) is the verification step.
 
-## Settings
+## Gotchas
 
-The notebook's `Config` cell owns hyperparameters (Table 5). `DB_PATH` is direct (`database/main_database.db`, resolved from repo root) — no env vars. ML defaults: lookback 28, horizon 5, seed 42, projection_dim 64, lstm_dim 64, hidden_layers (32, 16), fusion_output_dim 3. `database/` is tracked in git.
+- `Config` cell owns all hyperparameters (thesis Table 5): lookback 28, horizon 5, seed 42, lstm 64, proj 64, MLP 3→32→16, fusion Linear(144→3)+softmax. `DB_PATH` is hardcoded to `database/main_database.db` — no env vars.
+- All SQLite reads go through `read_table`, which enforces `ENTITY_TABLES` schema: `jci_historical`, `bi_rate`, `inflation_data`, `kurs_usdidr` + `cnbc/detik/kontan_ihsg_articles`. Keep it as the single reader.
+- News: frozen `indobenchmark/indobert-base-p1` CLS, cached to `database/news_emb_cache.npz`. Attached past-only (strictly-before-date; Sat/Sun → Monday). Archive re-scrape (2026-10-09, merged from `database/new_database.db` into `main_database.db`): detik 4953 + cnbc 5556 (2019–2025) + kontan 10275 (2018–2025) all usable — all 3 portals now inform training. Never cite `csebuetnlp/mubi-bert-base` (nonexistent) — see issue #37.
+- Missing DB → notebook runs a synthetic seed-42 fallback; results from fallback runs are meaningless.
+- Current `database/` + `.gitignore`: `.gitignore` does NOT list `database/` or `*.db`, so the DB/cache are committable — check `git status` before committing large binaries.
+- Single-layer LSTM with dropout=0.2 emits a `dropout/num_layers=1` UserWarning every run — harmless, by design.
 
-**New dependencies**: `torch>=2.4.0`, `transformers>=4.41.0` for the thesis model architecture.
+## Do not "fix" — leak-free methodology
 
-## Data (what is actually here)
+- Order: align → train-only scaling (70% prefix, `train_end_idx`) → window → t+5 labels (`future_close > Close`). Scalers must never see the test prefix.
+- Macro alignment is ffill-only with leading NaNs dropped. Never `bfill` (injects future macro values).
+- Result is an honest weak signal (pooled AUC ≈ 0.50 post-rescrape, no ablation/trading edge, news gate γ ≈ 0.03). The checks cell passes — do not "improve" metrics by loosening the above.
+- `v1.0-bab4` is the frozen thesis-Ch.4 run; later E1–E3/optimization cells sit on top — never quote post-tag numbers as Bab-4 results. (Note: tag not present in this clone; verify via `git tag` upstream.)
 
-- Source of truth is SQLite: `database/main_database.db` (git-ignored). Entity contract lives in `ENTITY_TABLES` (notebook cell) and is enforced on every read: `jci_historical`, `bi_rate`, `inflation_data`, `kurs_usdidr` plus `cnbc_ihsg_articles`, `detik_ihsg_articles`, `kontan_ihsg_articles`.
-- News signal: all 3 portals embedded once with frozen `indobenchmark/indobert-base-p1` CLS (5067 articles parsed incl. Indonesian month names), cached to `database/news_emb_cache.npz`, attached past-only (strictly-before-date means, weekend Sat/Sun → Monday per thesis). 4192 articles fall on/before JCI end (2025-12) and inform training; 875 CNBC/Kontan articles dated 2026 are embedded but cannot inform t+5 labels (no future prices) — excluded by construction, counts printed in the run cell.
+## Open thesis issues
 
-## Current result: weak signal, honestly trained
-
-Last executed run trains per fold (fresh model, Adam, weighted BCE, early stopping max100/patience8, `TimeSeriesSplit` n=5, n=304/fold) on real data (1852 rows, 2018–2025). Macro uses Z-score per thesis §2.2 (train-fit only):
-
-- Walk-forward: pooled AUC ≈ 0.51, acc ≈ 0.48, F1 ≈ 0.46; per-fold AUC 0.43–0.61 (mean ≈ 0.53).
-- Ablation (pooled AUC): lstm 0.50, lstm_macro 0.51, lstm_news 0.50, static 0.50, full 0.51 — no variant beats chance; macro+news add ~nothing.
-- Trading sim (prob>0.5 → hold 5d, no costs): full Sharpe ≈ 0.40 vs buy-hold ≈ 0.39, MDD ≈ -0.40 — no edge.
-- Both classes predicted: UP recall ≈ 0.40, DOWN recall ≈ 0.59 at threshold 0.5 — no more constant-UP collapse.
-- Gating alive and varying: α (tech) ≈ 0.20–0.64, β (macro) ≈ 0.36–0.63, γ (news) ≈ 0.00–0.19 — news carries ~nothing.
-
-Do not treat these numbers as a bug in the architecture; the leak-free checks cell passes.
-
-## Leak-free methodology — do not "fix" these
-
-- Order: align → **train-only scaling** → window (lookback 28) → t+5 labels.
-- Scalers fit on the 70% train prefix only (`train_end_idx`); the checks cell proves it (`data_min_` equals the train-prefix min).
-- Macro alignment is ffill-only with leading NaNs dropped — never backfill (`bfill` injects future macro values).
-- Target = `future_close > Close` at t+5. Seed is 42 throughout.
-
-## Model architecture (thesis Table 5)
-
-- **Technical branch**: LSTM (hidden=64, lookback=28, dropout=0.2) over technical indicators
-- **Macro branch**: MLP Encoder (2 layers: 3→32→16, ReLU) — no lookback, single timestep
-- **News branch**: Frozen IndoBERT (`indobenchmark/indobert-base-p1`, CLS precomputed + cached) → Linear projection (768→64)
-- **Adaptive MLP Fusion (Soft Gating Network)**: Linear(144→3) + Softmax → weights (α, β, γ)
-- **Head**: Linear(64→1) for binary classification (BCEWithLogitsLoss)
-
-## Evaluation (thesis methodology)
-
-- Walk-forward expanding window validation (`TimeSeriesSplit` n=5, 304 samples/fold, train-fit scalers per fold)
-- Per-fold training: fresh model, Adam 1e-3, weighted BCE, early stopping (max100/patience8, 10% val split), learning curves stored in `wf_metrics["learning_curves"]`
-- Metrics: AUC, Accuracy, F1-Score + trading sim (prob>0.5 → hold 5d, no costs): Sharpe, MDD, win-rate vs buy-hold
-- Ablation variants (`StockModel.VARIANTS`): `lstm`, `lstm_macro`, `lstm_news`, `static` (mean fusion), `full` + E1 control `lstm_news_shuffled`
-- Experiments on top of v1.0-bab4: E1 shuffled-news control, E2 learning curves, E3 `news_agg="last"` vs thesis mean-pooling (`wf_metrics["news_agg_last"]`)
-- E1–E3 outcomes (2026-10-05, post-tag — NOT Bab-4 numbers): E1 `lstm_news` AUC 0.504 vs shuffled 0.511 → news is noise, gate not lazy. E2 stops at 9–17 epochs, train/val loss ≈ 0.59–0.65 (near chance 0.69) → signal exhausted, not underfit. E3 last-vs-mean AUC 0.514 vs 0.514 → aggregation irrelevant, no thesis change needed.
-- Optimization round 1–5 (post-tag — NOT Bab-4 numbers): (1) per-fold Youden-J thresholds, per-class F1 in fold metrics; pooled acc/F1 still at 0.5. (2) focal AUC 0.5025 < BCE 0.5136 → keep BCE. (3) paired ΔAUC 95% CIs all cross 0 → no variant significantly better. (4) epoch-0 grad norms lstm 0.003 / mlp 0.009 / news 0.086 / gate+head 0.033 → gradients alive everywhere, gate's news shutdown is learned. (5) lookback×LR grid: 28/1e-3 best (0.5136); 14 → 0.5028, 56 → 0.4946 → Table 5 defaults confirmed. Tracked in #38.
-- Per-fold metrics bar chart, gating-weights (α, β, γ) evolution + distribution, ROC curves, confusion matrices, prediction-vs-actual timeline, confidence histogram
-
-## Known notebook warts
-
-- Cell 0 claims AUC/F1/Sharpe metrics; only AUC/Accuracy/F1 are computed.
-- LSTM emits a dropout/num_layers=1 UserWarning on every run (dropout=0.2 with a single-layer LSTM) — harmless, by design.
-
-## Open GitHub issues (thesis reminders)
-
-- #36 `thesis:` fix §2.1 corpus claim — CNBC (229) + Kontan (646) articles are 100% dated 2026; only detik (5863, 2018–2025) informs training. Re-scrape with archive crawl or rewrite §2.1 as detik-primary.
-- #37 `thesis:` write full IndoBERT ID `indobenchmark/indobert-base-p1` (12L/12H/768, frozen CLS, mean-pool, 768→64) into Table 5. Never cite `csebuetnlp/mubi-bert-base` (does not exist on HF).
-- #38 `thesis:` report Youden-J thresholds + paired ΔAUC CIs in §2.7/Ch.4; use grad audit (news grad alive, gate shutdown is learned) for RQ2 discussion. Focal/grid were negative — no thesis change.
-
+- #36: §2.1 corpus claim wrong — only detik informs training; re-scrape archive or rewrite as detik-primary.
+- #37: Table 5 must carry full IndoBERT ID + spec (12L/12H/768, frozen CLS, mean-pool, 768→64).
+- #38: report Youden-J thresholds + paired ΔAUC CIs; focal/grid were negative (keep BCE, lookback 28 / LR 1e-3).
+- #39: §4.x EMH discussion (1.5 pp max) + practical-implication fallback; both drafts live as an issue comment.
+- #40: defense checklist — frozen numbers table + ordered tasks (do this first).
