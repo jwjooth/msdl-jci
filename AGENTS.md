@@ -33,4 +33,5 @@ The whole project is **one notebook**: `notebooks/development.ipynb` (config →
 - #37: Table 5 must carry full IndoBERT ID + spec (12L/12H/768, frozen CLS, mean-pool, 768→64).
 - #38: report Youden-J thresholds + paired ΔAUC CIs; focal/grid were negative (keep BCE, lookback 28 / LR 1e-3).
 - #39: §4.x EMH discussion (1.5 pp max) + practical-implication fallback; both drafts live as an issue comment.
-- #40: defense checklist — frozen numbers table + ordered tasks (do this first).
+- #43: thesis close-out checklist (add/remove/change in docx) — the remaining doc work; close #36–#39 through it.
+- #44: repo hygiene (LFS decision + docx tracking). #40 closed (lab side done, pushed). #41/#42 are post-defense only.
