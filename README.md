@@ -1,68 +1,204 @@
 # MSDL-JCI — Multi-Source Deep Learning for JCI Direction Prediction
 
-Predicting Indonesia Composite Index (t+5) direction from technical, macroeconomic, and news modalities — implements the **thesis defense architecture**.
+![Project Status](https://img.shields.io/badge/status-research-orange.svg)
+![Methodology](https://img.shields.io/methodology/leak-free.svg)
+![Python](https://img.shields.io/badge/python-3.12+-blue.svg)
 
-```text
-Research Status: Thesis-aligned, honestly trained — post-rescrape run (2026-10-09, 3-portal archive corpus): pooled AUC ≈ 0.50, no variant/market edge. Experiments E1–E3 + optimization round + behavioral analyses (gate-vs-ATR, COVID split, ECE) included.
-Proposed Model: LSTM + MLP Encoder + Frozen IndoBERT + Adaptive MLP Fusion (Soft Gating).
-Deployment Status: Research/thesis defense only. Not for live trading.
-```
+Predicting Indonesia Composite Index (t+5) direction from technical, macroeconomic, and news modalities — implements the **thesis-defense architecture** with **purge/embargo gap=33 protocol**.
 
-This repo is a **single Jupyter notebook**: `notebooks/development.ipynb` contains the config, hyperparameters (Table 5), SQLite entity contract, all utilities, the model architecture, walk-forward evaluation, visualizations, and leak-free checks.
+## 📊 Current Run Status (2026-10-15)
 
-## Architecture (Thesis Table 5)
+| Metric | V1 Archive (gap=0) | V2 Purged (gap=33) | Change |
+|---|---:|---:|---:|
+| **Full AUC** | 0.4988 | **0.4913** | -0.0075 |
+| **Full Sharpe vs BH** | 0.029 / 0.390 | **-0.090 / 0.390** | -0.119 |
+| **RQ1 macro-vs-lstm dAUC** | +0.0283 [-0.073, +0.130] | **+0.0034 [-0.099, +0.106]** | -0.025 |
+| **ECE (10 bins)** | 0.1045 | **0.0774** | +0.027 |
+| **Positioned days** | 337 / 1520 | **621 / 1520** | +284 |
+| **Gate β (Macro)** | ≈0.61 | **0.5569** | -0.05 |
+| **Gate γ (News)** | ≈0.035 | **0.0870** | +0.052 |
+
+**Key finding**: Purge/embargo (gap=33) reduces performance from "above noise" to "below noise," but all paired ΔAUC CIs still cover zero — consistent with leak-free principle, no exploitable signal.
+
+**Research status**: Thesis-aligned, honestly trained, 3-portal archive corpus (detik 4953 + cnbc 5556 + kontan 10275 usable, 2018–2025). All paired ΔAUC CIs cover zero across variants and horizons (t+1, t+5, t+10). Results fail to reject semi-strong EMH for weekly JCI direction.
+
+> **Not for live trading**. Not investment advice. Historical simulation only.
+
+## 🏗️ Architecture (Thesis Table 5)
 
 | Component | Specification |
 |---|---|
-| Frozen IndoBERT | `indobenchmark/indobert-base-p1` (frozen CLS, precomputed + cached) |
-| Projection | Linear (768 → 64) |
-| LSTM Branch | Hidden=64, Lookback=28, Dropout=0.2 |
-| MLP Encoder | 2 layers (3→32→16), ReLU |
-| Adaptive Fusion | Linear(144→3) + Softmax → (α, β, γ) |
-| Head | Linear(64→1), BCEWithLogitsLoss |
+| **Frozen IndoBERT** | `indobenchmark/indobert-base-p1` — 12 layers, 12 heads, hidden 768; weights frozen; CLS token; daily mean-pool over articles; projected 768 → 64 |
+| **Projection Layer** | Linear (768 → 64) |
+| **LSTM Branch** | Hidden Size 64, Lookback Window 28, Dropout 0.2 |
+| **MLP Encoder** | 2 Layers (3 → 32 → 16), ReLU; Output: 16-dimensional embedding |
+| **Macro Projection** | Linear (16 → 64) |
+| **News Projection** | Linear (768 → 64) |
+| **Adaptive MLP Fusion (Soft Gating)** | Input 144 (64 + 16 + 64) → Output 3 weights (α, β, γ) via Softmax |
+| **Head** | Linear (64 → 1), BCEWithLogitsLoss |
 
-## Repository structure
+## 📦 Repository Structure
 
 ```text
 MSDL-JCI/
-├─ notebooks/development.ipynb   # the whole project (config → utils → model → run → viz → checks)
-├─ database/main_database.db     # SQLite source of truth (tracked in git)
-├─ pyproject.toml uv.lock .python-version
-├─ AGENTS.md README.md
+├─ notebooks/
+│   └─ development.ipynb   # the whole project (config → utils → model → run → viz → checks)
+├─ database/
+│   ├─ main_database.db     # SQLite source of truth (tracked in git)
+│   └─ news_emb_cache.npz   # frozen IndoBERT embedding cache (19,991 keys)
+├─ pyproject.toml           # uv.lock is single source of truth
+├─ .python-version          # Python 3.12
+└─ README.md
 ```
 
-## Quickstart
+## ⚡ Quickstart
 
 ```bash
+# 1. Sync dependencies (uv.lock is single source of truth)
 uv sync --extra dev
+
+# 2. Install kernel (only needed once)
 uv run python -m ipykernel install --user --name python3
+
+# 3. Run notebook (first run downloads IndoBERT + builds cache)
 uv run jupyter execute notebooks/development.ipynb --inplace
 ```
 
-`uv.lock` is the single source of truth.
+**Important**: First run downloads `indobenchmark/indobert-base-p1` and writes `database/news_emb_cache.npz`. Ensure `database/main_database.db` exists with all 3 portal tables (detik, cnbc, kontan).
 
-## Data requirements
+### V2 Purge Protocol (gap=33)
 
-Single SQLite file (tracked in git):
+After code patch, the walk-forward uses `TimeSeriesSplit(n_splits=5, gap=33)` — gap = lookback(28) + horizon(5). **Training windows never touch test-period prices.** This reduces training samples per fold by ~33 and produces the V2 results reported in Tables 6–9.
 
-```text
-database/main_database.db   # jci_historical, bi_rate, inflation_data, kurs_usdidr
-                             # + cnbc/detik/kontan_ihsg_articles
+> Run: `git diff` to verify `gap=33` added to `walk_forward_evaluate` and `classical_baseline`.
+
+## 🗄️ Data Requirements
+
+### SQLite Database (`database/main_database.db`)
+
+Tracked in git. Contains:
+
+| Table | Key Columns |
+|---|---|
+| `jci_historical` | Date, Close, High, Low, Open, Volume |
+| `bi_rate` | Period, BI-7Day-RR |
+| `inflation_data` | Periode, Data Inflasi |
+| `kurs_usdidr` | Date, Close (USD/IDR rate) |
+| `cnbc_ihsg_articles` | title, url, publish_date, content, scraped_at |
+| `detik_ihsg_articles` | title, url, snippet, published, scraped_at |
+| `kontan_ihsg_articles` | title, url, snippet, published, category, scraped_at |
+
+### News Embedding Cache (`database/news_emb_cache.npz`)
+
+Autogenerated on first run. Contains:
+
+- 20,784 articles across 3 portals:
+  - **detik**: 4,953 articles (2018-01-02 → 2025-12-31)
+  - **cnbc**: 5,556 articles (2018–2025)
+  - **kontan**: 10,275 articles (2018–2025)
+- Embedding shape: (20784, 768), frozen IndoBERT CLS, mean-pool per trading day
+- Past-only: weekend articles (Sat/Sun) → mapped to next Monday
+- Articles on/before JCI end (2025-12-30): 20,773 (rest cannot inform t+5 labels)
+
+**Absent DB** → notebook runs synthetic seed-42 fallback; results meaningless.
+
+## 🔬 Evaluation Methodology
+
+### Walk-Forward Validation
+
+- **5 expanding-window folds**, ~304 test samples each
+- **At each fold**: model weights + both scalers re-initialized and fit **exclusively on the training prefix** — no statistics from any test fold leak into training
+- **V2 protocol**: `TimeSeriesSplit(n_splits=5, gap=33)` — gap = 28 lookback + 5 horizon; purge/embargo ensures training windows never touch test-period prices
+
+### Ablation Variants
+
+| Variant | Description |
+|---|---|
+| `lstm` | LSTM technical only (baseline) |
+| `lstm_macro` | LSTM + MLP encoder (macro) |
+| `lstm_news` | LSTM + frozen IndoBERT (news) |
+| `lstm_news_shuffled` | E1: break news-label link, keep marginals |
+| `static` | LSTM + MLP + news, averaged weights (1/3 each) |
+| `full` | Complete proposed model: LSTM + MLP + IndoBERT + Soft Gating |
+
+### Metrics
+
+- **Classification**: AUC (threshold-free), Accuracy, F1-Score
+- **Trading**: Sharpe Ratio (strategy / buy-hold), Max Drawdown, Win Rate
+- **Threshold**: Classification uses per-fold Youden-J (maximizing TPR−FPR on train); trading uses fixed 0.5 probability rule
+- **Calibration**: ECE (10 bins) reported for transparency, not tuned
+
+### Per-Output Checks
+
+- Fold-level AUC/Acc/F1 + sample counts
+- Gating weights (α technical, β macro, γ news) evolution/distribution
+- ROC curves per fold + mean
+- Confusion matrices per fold @ Youden-J
+- Prediction vs actual timeline + rolling accuracy
+- Gate weights vs volatility (ATR-14, Pearson r)
+- COVID vs rest split (2020–21 vs remaining)
+- Reliability diagram + ECE
+- Block-bootstrap CI (2000 resamples, block=5)
+
+### Ablation & Analysis Cells
+
+- **Focal loss** vs weighted BCE
+- **Gradient audit** (epoch-0 grad norms per branch: lstm, mlp, news, gate+head)
+- **News aggregation**: mean vs last-article
+- **Lookback x LR grid**: lb∈{14,28,56} × lr∈{1e-3, 3e-4}
+- **Horizon sensitivity**: t+1, t+5, t+10 AUC/γ/Sharpe
+
+## ⚠️ Limitations and Risks
+
+- **Not investment advice**; not live-trading ready; historical simulation only
+- **Purge/embargo gap=33** reduces training samples; results are conservative
+- **Small, non-stationary sample**: 1,852 rows, 1,825 samples across 5 folds
+- **Macro release-date assumptions**: monthly BI-Rate/inflation keyed by release month, not official BPS/BI publication date — forward-filling may expose up to ~30 days of not-yet-published data
+- **News timing**: pre-close news on day t already reflected in P_t (close-to-close label basis) — γ ≈ 0.09 verdict confounds market efficiency with label timing
+- **IndoBERT token limit**: max 128 tokens per article; long analyses truncated
+- **Portal choice**: corpus leans on 2023–2025 CNBC/Kontan volume; early-window news coverage thinner
+- **Cost assumptions**: 15/25 bps one-way per signal flip; only 12 total flips over test window; results may change with different cost structure
+- **One artifact**: `wf_artifacts.npz` (probs/truths/dates per variant) enables horizon/cost/regime tests without retraining
+
+### Key Negative Findings (V2)
+
+- All paired ΔAUC CIs cover zero across variants (lstm, lstm_macro, lstm_news, static, full)
+- News gate γ ≈ 0.09 — model learns to suppress news channel; random-news control matches real-news AUC
+- Strategy Sharpe -0.090 vs buy-and-hold 0.390; trails at every cost level
+- No horizon beats chance: t+1 (0.487), t+5 (0.491), t+10 (0.488)
+- RQ1 macro-vs-lstm dAUC +0.0034 [-0.099, +0.106] — CI covers zero
+
+## 📜 License
+
+MIT. See `AGENTS.md` for AI agent use policy.
+
+---
+
+## 👨‍💻 Development
+
+This repo is maintained for **thesis publication** (journal track) and **methodological reproducibility**.
+
+### Adding New Analyses
+
+1. Add new cell to `notebooks/development.ipynb` following existing patterns
+2. Update `VARIANTS` tuple if adding new ablation
+3. Ensure all scalers are fit only on train prefix (leak-free principle)
+4. Add evaluation metrics in the "Checks" cell
+
+### Issue Tracking
+
+See GitHub Issues:
+- **#52**: H+1 shift, win-rate, RF Sharpe removal ✅ Closed
+- **#53**: Table 6 header, RQ1 sentences, em-dash ✅ Closed
+- **#54**: V2 purge gap=33 + docx sync ⏳ In Progress
+- **#55**: Abstract/LitReview/structure → #45 submit ⏳ Pending
+- **#45**: Journal submit ⏳ Pending
+
+## 📖 Citation
+
+If using this code/model in academic work, please cite:
+
 ```
-
-Absent DB → the notebook runs a synthetic seed-42 fallback instead. News vectors come from a 3-portal archive corpus (detik 4953 + cnbc 5556 + kontan 9883 usable, 2018–2025) embedded once with frozen IndoBERT and cached to `database/news_emb_cache.npz`, attached past-only (weekend → Monday).
-
-## Evaluation methodology
-
-- Walk-forward validation, 5 splits × 304 samples, per-fold training (Adam, weighted BCE, early stopping)
-- Metrics: AUC, Accuracy, F1 + trading sim (Sharpe, MDD, win-rate vs buy-hold)
-- Ablation: `lstm` / `lstm_macro` / `lstm_news` / `static` / `full` (+ shuffled-news control, learning curves, news-aggregation experiment)
-- Per-fold metrics, gating-weight (α, β, γ) evolution/distribution, ROC, confusion matrices, prediction-vs-actual, confidence plots, gate-vs-volatility, COVID-vs-rest split, ECE calibration
-
-## Limitations and risks
-
-Not investment advice; not live-trading ready; historical simulation only. Cost assumptions may change results; macro release-date and news-timing assumptions are imperfect; small, non-stationary sample.
-
-## License
-
-MIT.
+Theodvandy, J. (2026). MSDL-JCI: Multi-Source Deep Learning for JCI Direction Prediction.
+Thesis, Soegijapranata Catholic University. https://github.com/jwjooth/msdl-jci
+```
