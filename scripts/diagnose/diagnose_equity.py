@@ -1,8 +1,7 @@
-"""Phase-1 diagnosis (READ-ONLY): why is the strategy equity curve flat?
-Reads stored notebook outputs + rebuilds price/return frame from SQLite.
+"""Phase-1 diagnosis (READ-ONLY): strategy vs buy-hold equity construction.
+Reads committed database/wf_artifacts.npz + rebuilds price/return frame from SQLite.
 Never touches training/eval code. Run: python scripts/diagnose/diagnose_equity.py
 """
-import json
 import sqlite3
 from pathlib import Path
 
@@ -17,27 +16,21 @@ ROOT = Path(__file__).resolve().parents[2]
 OUT = Path(__file__).resolve().parent / "out"
 OUT.mkdir(exist_ok=True)
 
-# ---- 1. stored arrays from notebook (full variant only is stored) ----
-nb = json.load(open(ROOT / "notebooks" / "development.ipynb"))
-wf = None
-for c in nb["cells"]:
-    if c.get("id") == "run":
-        pass
-# wf_metrics lives only in kernel memory; recover what cells printed/stored:
-# fold_metrics preds/truths are stored in outputs? No — recover from `ablation` is summary-only.
-# So: rebuild preds is impossible without torch. Instead use what IS stored:
-# -> per-fold auc/acc/f1/thr/n from viz3 printed table (hard numbers from frozen run).
-FOLDS = [
-    {"fold": 0, "auc": 0.5007, "acc": 0.4803, "f1": 0.1222, "n": 304},
-    {"fold": 1, "auc": 0.5178, "acc": 0.4408, "f1": 0.0000, "n": 304},
-    {"fold": 2, "auc": 0.4271, "acc": 0.4737, "f1": 0.6117, "n": 304},
-    {"fold": 3, "auc": 0.5828, "acc": 0.4211, "f1": 0.1200, "n": 304},
-    {"fold": 4, "auc": 0.6018, "acc": 0.5033, "f1": 0.2705, "n": 304},
-]
-GATES = [  # (alpha, beta, gamma) per fold, viz4 printed table
-    (0.0006, 0.9994, 0.0000), (0.0411, 0.9464, 0.0125), (0.4270, 0.4297, 0.1433),
-    (0.5683, 0.4175, 0.0141), (0.7248, 0.2725, 0.0027),
-]
+# ---- 1. stored arrays from the notebook run (committed wf_artifacts.npz) ----
+# preds/truths/test_dates per variant — recompute fold metrics from these, never hardcode.
+af = np.load(ROOT / "database" / "wf_artifacts.npz", allow_pickle=True)
+P = np.asarray(af["full_preds"], dtype=float)
+T = np.asarray(af["full_truths"], dtype=float)
+D = [str(d) for d in af["full_test_dates"]]
+assert len(P) == len(T) == len(D) == 1520, (len(P), len(T), len(D))
+FOLDS = []
+for k in range(5):
+    p, t = P[k * 304:(k + 1) * 304], T[k * 304:(k + 1) * 304]
+    pred05 = (p > 0.5).astype(float)
+    FOLDS.append({"fold": k, "auc": float(roc_auc_score(t, p)),
+                  "acc": float(accuracy_score(t, pred05)),
+                  "f1": float(f1_score(t, pred05, zero_division=0)), "n": len(t)})
+print(f"full-variant artifacts: n={len(P)}, test window {D[0]} -> {D[-1]}")
 
 # ---- 2. rebuild price/return frame from DB (news-independent part of align) ----
 con = sqlite3.connect(ROOT / "database" / "main_database.db")
@@ -103,13 +96,9 @@ for k, h in enumerate(hot):
 print(f"longest run of consecutive entries with r5d>+10%: {best} ending at entry {bi_} ({test_px['Date'].iloc[bi_].date()})")
 
 # ---- 5. stored per-fold metric table + gate table (evidence, no retraining) ----
-print("\nstored per-fold metrics (H2: threshold misfit visible in fold1 F1=0.000):")
+print("\nstored per-fold metrics @0.5 (recomputed from wf_artifacts.npz):")
 for m in FOLDS:
     print(f"  fold {m['fold']}: AUC={m['auc']:.4f} Acc={m['acc']:.4f} F1={m['f1']:.4f} n={m['n']}")
-print("stored gate weights (H7: gamma max 0.143, never dominant; alpha rises to 0.72 in fold 4):")
-for k, (a, b, g) in enumerate(GATES):
-    print(f"  fold {k}: alpha={a:.4f} beta={b:.4f} gamma={g:.4f}")
 
-print("\nUNVERIFIABLE without torch/checkpoints: stored per-entry prob arrays, lstm-vs-full pred equality, prob histograms.")
-print("To verify H1/H2/H8 fully, run cells viz9/viz12 outputs already pasted in chat (mean pred 0.4482, UP recall 0.1981).")
+print("\nGate weights / prob histograms live in notebook outputs only (need torch to rebuild).")
 print("DONE")
