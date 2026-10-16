@@ -22,10 +22,12 @@ af = np.load(ROOT / "database" / "wf_artifacts.npz", allow_pickle=True)
 P = np.asarray(af["full_preds"], dtype=float)
 T = np.asarray(af["full_truths"], dtype=float)
 D = [str(d) for d in af["full_test_dates"]]
-assert len(P) == len(T) == len(D) == 1520, (len(P), len(T), len(D))
+N_FOLDS = 5  # matches the notebook's TimeSeriesSplit(n_splits=5)
+assert len(P) == len(T) == len(D) and len(P) % N_FOLDS == 0, (len(P), len(T), len(D))
+PER = len(P) // N_FOLDS  # equal fold sizes; derived, not hardcoded
 FOLDS = []
-for k in range(5):
-    p, t = P[k * 304:(k + 1) * 304], T[k * 304:(k + 1) * 304]
+for k in range(N_FOLDS):
+    p, t = P[k * PER:(k + 1) * PER], T[k * PER:(k + 1) * PER]
     pred05 = (p > 0.5).astype(float)
     FOLDS.append({"fold": k, "auc": float(roc_auc_score(t, p)),
                   "acc": float(accuracy_score(t, pred05)),
@@ -48,11 +50,11 @@ px = jci.dropna(subset=["return_5d"]).reset_index(drop=True)
 print(f"price frame: {len(px)} rows, {px['Date'].min().date()} -> {px['Date'].max().date()}")
 print(f"label UP rate: {px['target'].mean():.4f}")
 
-# test entries: last 5 folds x 304 of windowed samples; window lb=28 maps sample i -> df row i+27.
-# walk-forward test spans the tail; recover entry dates as last 1520 sample dates of the aligned frame.
+# test entries: last N_FOLDS x PER windowed samples; window lb=28 maps sample i -> df row i+27.
+# walk-forward test spans the tail; recover entry dates as last len(P) sample dates of the aligned frame.
 # aligned df drops indicator-NaN head (~20 rows); approximate: use tail of px shifted by indicator warmup.
 # EXACT mapping needs the notebook df; we verify continuity + magnitudes, not exact indices.
-test_px = px.tail(1520).reset_index(drop=True)
+test_px = px.tail(len(P)).reset_index(drop=True)
 print(f"test window approx: {test_px['Date'].min().date()} -> {test_px['Date'].max().date()}, n={len(test_px)}")
 gaps = test_px["Date"].diff().dt.days
 print(f"date gaps >5d inside test window: {(gaps > 5).sum()} (fold-boundary discontinuity check)")

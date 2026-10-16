@@ -12,6 +12,8 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 from msdl_dates import clean_day  # single copy shared with notebooks/development.ipynb
 
+con = sqlite3.connect(ROOT / "database" / "main_database.db")
+
 
 SECTORS = {
     "bank/suku-bunga": ["bank ", "bca", "bri", "mandiri", "bni", "suku bunga"],
