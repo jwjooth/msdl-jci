@@ -3,7 +3,8 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .ruff_cache/
-database/new_database.db
+database/
+*.npz
 .idea/
 
 .opencode/
