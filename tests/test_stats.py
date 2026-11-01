@@ -23,7 +23,7 @@ with open(ROOT / "notebooks" / "development.ipynb", encoding="utf-8") as f:
 mod = ast.parse(src)
 picked = [n for n in mod.body if isinstance(n, ast.FunctionDef) and n.name in WANT]
 assert {n.name for n in picked} == WANT, {n.name for n in picked}
-exec(compile(ast.Module(body=picked, type_ignores=[]), "<stats>", "exec"), NS)
+exec(compile(ast.Module(body=picked, type_ignores=[]), "<stats>", "exec"), NS)  # noqa: S102
 youden_threshold, paired_stats, trading_stats = (NS[n] for n in
                                                  ("youden_threshold", "paired_stats", "trading_stats"))
 
