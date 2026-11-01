@@ -20,7 +20,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["ruff>=0.8.0"]
+dev = ["ruff>=0.8.0", "scipy>=1.11.0"]
 
 [tool.uv]
 package = false
