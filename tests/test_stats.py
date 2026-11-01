@@ -84,6 +84,18 @@ def test_costs_widen_the_gap():
     assert paid < free, (free, paid)
 
 
+def test_buyhold_uses_daily_compounding():
+    """Regression guard for issue #63: buy-hold equity must equal true
+    price ratio over test window (daily compounding), not overlapping 5d."""
+    df = _flat_market()
+    dates = df["Date"].dt.strftime("%Y-%m-%d").tolist()
+    probs = [0.0] * 40
+    out = trading_stats(dates, probs, df, thr=0.5, hold=5)
+    bh_total = out["buyhold"]["total_return"]
+    expected = (1.01 ** 39) - 1.0
+    assert abs(bh_total - expected) < 1e-12, (bh_total, expected)
+
+
 if __name__ == "__main__":
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for t in tests:
