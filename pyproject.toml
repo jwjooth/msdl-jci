@@ -1,6 +1,6 @@
 [project]
 name = "msdl-jci"
-version = "0.1.0"
+version = "0.2.0"
 description = "Multi-Source Deep Learning for JCI direction prediction (thesis research, closed as rigorous negative result)"
 readme = "README.md"
 license = { text = "MIT" }
