@@ -3,8 +3,10 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .ruff_cache/
-database/
-*.npz
+!.venv
 .idea/
 
 .opencode/
+
+# Tracked thesis artifacts (intentional — do not add new db/npz here without review)
+database/new_database.db

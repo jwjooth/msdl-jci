@@ -53,6 +53,25 @@ def bi_date_to_publication_date(period_str: str) -> pd.Timestamp:
 
 
 def main():
+    import shutil
+    import sys
+
+    if "--write" not in sys.argv:
+        print("DRY RUN (read-only). Re-run with --write to mutate the DB.")
+        print(f"Would add release_date to inflation_data and publication_date to bi_rate in {DB_PATH}")
+        con = sqlite3.connect(DB_PATH)
+        cur = con.cursor()
+        for tbl, col in (("inflation_data", "release_date"), ("bi_rate", "publication_date")):
+            cur.execute(f"PRAGMA table_info({tbl})")
+            cols = [c[1] for c in cur.fetchall()]
+            print(f"  {tbl}.{col}: {'exists' if col in cols else 'MISSING (would add)'}")
+        con.close()
+        return
+
+    backup = DB_PATH.with_suffix(DB_PATH.suffix + ".bak")
+    shutil.copy2(DB_PATH, backup)
+    print(f"backup written: {backup}")
+
     con = sqlite3.connect(DB_PATH)
     cursor = con.cursor()
 

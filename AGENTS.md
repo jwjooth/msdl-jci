@@ -21,10 +21,10 @@ The whole project is **one notebook**: `notebooks/development.ipynb` (config →
 - `database/main_database.db`, `database/news_emb_cache.npz`, `database/wf_artifacts.npz` ARE tracked in git despite `.gitignore` listing `database/`. Do not delete; `.gitignore` only prevents new accidental adds.
 - Missing DB → notebook runs a synthetic seed-42 fallback; results are meaningless.
 - Single-layer LSTM dropout=0.2 emits a harmless `dropout/num_layers=1` UserWarning every run — by design.
-- `attach_news` uses a Python loop (O(N×M)); acceptable at current scale.
+- `attach_news` uses vectorized searchsorted + cumsum (O(N+M)); acceptable at current scale.
 - `news_embeddings` downloads IndoBERT on first cache miss; fails offline without pre-download. Set `TRANSFORMERS_OFFLINE=1` in CI.
-- `trading_stats` buy-hold uses overlapping 5d returns (overstates wealth ~3.5×); strategy uses daily compounding — apples-to-oranges Sharpe.
-- `classical_baseline` scales news embeddings with tech+macro — inconsistent with deep path (news proj frozen). Baselines not directly comparable.
+- `trading_stats` buy-hold uses daily compounding (same basis as strategy); both Sharpe ratios are directly comparable.
+- `classical_baseline` scales tech+macro together and news separately on train prefix — now comparable to deep path (news_proj frozen Linear 768→64).
 - `paired_stats` uses `scipy.stats.t.ppf(0.975, df=n-1)` (12.706 fallback for n=1); works any fold count. CI covers zero on identical folds (tested).
 
 ## Do not "fix" — leak-free methodology
