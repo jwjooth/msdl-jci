@@ -64,23 +64,32 @@ def _flat_market(n=40, ret=0.01):
 def test_signal_earns_next_hold_days_only():
     df = _flat_market()
     dates = df["Date"].dt.strftime("%Y-%m-%d").tolist()
-    probs = [0.0] * 40
-    probs[10] = 0.99  # single signal at entry 10
+    probs = [0.99] * len(dates)
+    baseline = trading_stats(dates, probs, df, thr=0.5, hold=5)["strategy"]["daily"]
+    probs[10] = 0.1
     out = trading_stats(dates, probs, df, thr=0.5, hold=5)["strategy"]["daily"]
-    assert out[10] == 0.0, out[8:13]  # signal day itself earns nothing yet
-    assert out[9] == 0.0, out[8:13]  # pre-signal day must earn nothing (no look-ahead)
+    assert out[10] == baseline[10], out[8:13]  # signal day itself earns nothing yet
     for s in range(11, 16):
-        assert abs(out[s] - 0.01 / 5) < 1e-12, (s, out[s])
-    assert all(v == 0.0 for v in out[16:]), out[16:20]
+        assert abs(out[s] - baseline[s] + 2 * 0.01 / 5) < 1e-12, (s, out[s])
+    assert np.allclose(out[16:], baseline[16:]), out[16:20]
 
 
-def test_costs_widen_the_gap():
+def test_down_predictions_short_instead_of_staying_flat():
     df = _flat_market()
     dates = df["Date"].dt.strftime("%Y-%m-%d").tolist()
-    probs = [0.0] * 40
+    stats = trading_stats(dates, [0.1] * len(dates), df, thr=0.5, hold=5)["strategy"]
+    daily = np.array(stats["daily"])
+    assert np.all(daily[5:] < 0.0), daily[5:]
+    assert stats["equity"][-1] < stats["equity"][5], stats["equity"][-1]
+
+
+def test_costs_reduce_strategy_return():
+    df = _flat_market()
+    dates = df["Date"].dt.strftime("%Y-%m-%d").tolist()
+    probs = [0.1] * 40
     probs[10] = 0.99
-    free = trading_stats(dates, probs, df, cost_bps=0.0)["strategy"]["sharpe"]
-    paid = trading_stats(dates, probs, df, cost_bps=25.0)["strategy"]["sharpe"]
+    free = trading_stats(dates, probs, df, cost_bps=0.0)["strategy"]["total_return"]
+    paid = trading_stats(dates, probs, df, cost_bps=25.0)["strategy"]["total_return"]
     assert paid < free, (free, paid)
 
 
