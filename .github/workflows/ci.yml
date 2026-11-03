@@ -29,6 +29,6 @@ jobs:
 
       - name: Verify notebook executes (smoke test)
         run: |
-          uv run jupyter nbconvert --to notebook --execute notebooks/development.ipynb --output /dev/null --ExecutePreprocessor.timeout=600
+          uv run jupyter execute notebooks/development.ipynb --inplace
         env:
           TRANSFORMERS_OFFLINE: "1"
